@@ -1,0 +1,183 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>Ontology</title>
+    <script src="https://code.jquery.com/jquery-3.3.1.slim.min.js"></script>
+    <script src="https://stackpath.bootstrapcdn.com/bootstrap/4.1.3/js/bootstrap.bundle.min.js" integrity="sha384-pjaaA8dDz/5BgdFUPX6M/9SUZv4d12SUPF0axWc+VRZkx5xU3daN+lYb49+Ax+Tl" crossorigin="anonymous"></script>
+    <link href="https://stackpath.bootstrapcdn.com/bootstrap/4.1.3/css/bootstrap.min.css" rel="stylesheet" integrity="sha384-MCw98/SFnGE8fJT3GXwEOngsV7Zt27NXFoaoApmYm81iuXoPkFOJwJ8ERdknLPMO" crossorigin="anonymous">
+
+    <style>
+        #header-row {
+            margin-top: 20px;
+            margin-bottom: 20px;
+        }
+        .hierarchy-card {
+            margin-bottom: 20px;
+        }
+        .definition {
+            font-style: italic;
+        }
+        .local {
+            color: black;
+        }
+        .inherit {
+            color: grey;
+        }
+        .override {
+            color: grey;
+            text-decoration: line-through;
+        }
+
+        .filler {}
+
+        .from-field {
+            font-size: xx-small;
+            color: grey;
+        }
+        .recent {
+            font-size: small;
+        }
+        .name {
+            font-size: larger;
+        }
+    </style>
+
+    <script>
+        var j = jQuery;
+
+        function go() {
+            var concept = j("#search-input").val();
+            window.location.href = "/ontology/edit/" + concept;
+        }
+
+        j(document).ready(function() {
+            j("#search-button").on("click", function() {
+                go();
+            });
+            j("#search-input").on("keyup", function(e) {
+                if (e.key == "Enter") {
+                    go();
+                }
+            });
+            j("#hide-inherit-filter").on("change", function() {
+                if (j("#hide-inherit-filter")[0].checked) {
+                    j(".row-inherit").hide();
+                    j(".inherit").hide();
+                    j(".from-field").hide();
+                } else {
+                    j(".row-inherit").show();
+                    j(".inherit").show();
+                    j(".from-field").show();
+                }
+            });
+        });
+    </script>
+
+</head>
+<body>
+<div class="container">
+    <div id="header-row" class="row">
+        <div class="col-md-12">
+            <div class="card">
+                <div class="card-body">
+                    {% if "error-not-found" in payload %}
+                        <div class="alert alert-warning alert-dismissible fade show" role="alert">
+                            <strong>{{ payload["error-not-found"] }}</strong> does not exist.
+                            <button type="button" class="close" data-dismiss="alert" aria-label="Close">
+                                <span aria-hidden="true">&times;</span>
+                            </button>
+                        </div>
+                    {% endif %}
+
+
+                    <div class="input-group mb-3">
+                        <div class="input-group-prepend">
+                            <button class="btn btn-success" type="button" id="search-button">Go</button>
+                        </div>
+                        <input id="search-input" type="text" class="form-control" placeholder="" aria-label="Find a concept by name" aria-describedby="search-button">
+                    </div>
+
+                    {% if "recent" in payload and payload["recent"]|length > 0 %}
+                        <div class="recent">
+                            Recent:
+                            {% set comma = joiner(" • ") %}
+                            {% for recent in payload["recent"] %}
+                                {{ comma() }}
+                                <a href="/ontology/edit/{{ recent }}">{{ recent }}</a>
+                            {% endfor %}
+                        </div>
+                    {% endif %}
+                </div>
+            </div>
+        </div>
+    </div>
+    <div class="row">
+        <div class="col-md-3">
+            <div class="card hierarchy-card">
+                <div class="card-header">
+                    IS-A
+                </div>
+                <div class="card-body">
+                    {% for parent in payload.isa %}
+                        <div><a href="/ontology/edit/{{ parent }}">{{ parent }}</a></div>
+                    {% endfor %}
+                </div>
+            </div>
+            <div class="card hierarchy-card">
+                <div class="card-header">
+                    SUBCLASSES
+                </div>
+                <div class="card-body">
+                    {% for subclass in payload.subclasses %}
+                        <div><a href="/ontology/edit/{{ subclass }}">{{ subclass }}</a></div>
+                    {% endfor %}
+                </div>
+            </div>
+            <div class="card hierarchy-card">
+                <div class="card-header">
+                    SIBLINGS
+                </div>
+                <div class="card-body">
+                    {% for sibling in payload.siblings %}
+                        <div><a href="/ontology/edit/{{ sibling }}">{{ sibling }}</a></div>
+                    {% endfor %}
+                </div>
+            </div>
+        </div>
+        <div class="col-md-9">
+            <div class="card">
+                <div class="card-header">
+                    <span class="name"><strong>{{ payload.name }}</strong></span>
+                    <div class="custom-control custom-checkbox float-right">
+                        <input type="checkbox" class="custom-control-input" id="hide-inherit-filter">
+                        <label class="custom-control-label" for="hide-inherit-filter">Hide Inherited?</label>
+                    </div>
+                </div>
+                <div class="card-body">
+                    <p><span class="definition">"{{ payload.metadata.definition }}"</span></p>
+                    <table class="table table-sm table-striped table-borderless">
+                        $for slotfacet in payload["properties"]:
+                            <tr class="row-$slotfacet['status']">
+                                <td><a class="$slotfacet['status']" href="/ontology/browse/$slotfacet['slot']">$slotfacet["slot"]</a></td>
+                                <td><span class="$slotfacet['status']">$slotfacet["facet"]</span></td>
+                                <td>
+                                    $for filler in slotfacet["fillers"]:
+                                        <div>
+                                            $if filler["relation"]:
+                                                <a class="filler $filler['status']" href="/ontology/browse/$filler['value']">$filler["value"]</a>
+                                            $else:
+                                                <span class="filler $filler['status']">$filler["value"]</span>
+                                            $if filler["from"] is not None:
+                                                <span class="from-field">from <a class="from-field" href="/ontology/browse/$filler['from']">$filler["from"]</a></span>
+                                        </div>
+                                </td>
+                            </tr>
+                    </table>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+</body>
+</html>
