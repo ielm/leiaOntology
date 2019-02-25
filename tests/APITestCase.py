@@ -526,3 +526,43 @@ class APIInsertPropertyTestCase(unittest.TestCase):
 
         result = OntologyAPI().get("concept", metadata=True)[0]["concept"]
         self.assertEqual("concept", result["other"]["value"][0]["defined_in"])
+
+
+class APIRemovePropertyTestCase(unittest.TestCase):
+
+    def setUp(self):
+        client = ont.management.getclient()
+
+        ont.management.DATABASE = "unittest"
+        os.environ[ont.management.ONTOLOGY_ACTIVE] = "unittest"
+
+    def tearDown(self):
+        client = ont.management.getclient()
+        client.drop_database("unittest")
+
+    def test_remove_property(self):
+        concept1 = mock_concept("concept1", localProperties=[
+            {"slot": "test", "facet": "sem", "filler": "value1"},
+            {"slot": "test", "facet": "sem", "filler": "value2"},
+            {"slot": "test", "facet": "value", "filler": "value1"},
+            {"slot": "other", "facet": "sem", "filler": "value1"},
+        ])
+
+        concept2 = mock_concept("concept2", localProperties=[
+            {"slot": "test", "facet": "sem", "filler": "value1"},
+            {"slot": "test", "facet": "sem", "filler": "value2"},
+            {"slot": "test", "facet": "value", "filler": "value1"},
+            {"slot": "other", "facet": "sem", "filler": "value1"},
+        ])
+
+        OntologyAPI().remove_property("concept1", "test", "sem", "value1")
+
+        result = OntologyAPI().get("concept1")[0]["concept1"]
+        self.assertEqual({"value2"}, set(result["test"]["sem"]))
+        self.assertEqual({"value1"}, set(result["test"]["value"]))
+        self.assertEqual({"value1"}, set(result["other"]["sem"]))
+
+        result = OntologyAPI().get("concept2")[0]["concept2"]
+        self.assertEqual({"value1", "value2"}, set(result["test"]["sem"]))
+        self.assertEqual({"value1"}, set(result["test"]["value"]))
+        self.assertEqual({"value1"}, set(result["other"]["sem"]))

@@ -113,6 +113,25 @@
             });
         }
 
+        function remove_property(slot, facet, filler) {
+            var data = {
+                "slot": slot,
+                "facet": facet,
+                "filler": filler
+            };
+
+            $.ajax({
+                url: "/ontology/edit/remove/" + concept,
+                method: "POST",
+                data: JSON.stringify(data),
+                contentType: "application/json",
+            }).done(function(data) {
+                location.reload();
+            }).fail(function(error) {
+                console.log(error);
+            });
+        }
+
     </script>
 
     <script>
@@ -167,6 +186,13 @@
                 var facet = $("#insert-property-facet-field").val();
                 var filler = $("#insert-property-filler-field").val();
                 insert_property(slot, facet, filler);
+            });
+            $(".remove-property-button").on("click", function(e) {
+                var target = $(e.currentTarget);
+                var slot = target.data("slot");
+                var facet = target.data("facet");
+                var filler = target.data("filler");
+                remove_property(slot, facet, filler);
             });
         });
     </script>
@@ -283,6 +309,12 @@
                                 <td>
                                     {% for filler in slotfacet["fillers"] %}
                                         <div>
+                                            {% if filler["from"] is none %}
+                                                <button type="button" class="btn btn-danger remove-property-button inline-edit-button" data-slot="{{ slotfacet.slot }}" data-facet="{{ slotfacet.facet }}" data-filler="{{ filler.filler }}"><i class="fas fa-ban"></i></button>
+                                            {% else %}
+                                                <button disabled type="button" class="btn btn-danger block-property-button inline-edit-button"><i class="fas fa-ban"></i></button>
+                                            {% endif %}
+
                                             {% if filler["is_relation"] %}
                                                 <a class="filler {{ filler.status }}" href="/ontology/view/{{ filler.filler }}">{{ filler.filler }}</a>
                                             {% else %}

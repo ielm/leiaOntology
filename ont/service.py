@@ -158,6 +158,20 @@ def edit_insert(concept):
     return "OK"
 
 
+@app.route("/ontology/edit/remove/<concept>", methods=["POST"])
+def edit_remove(concept):
+    if not request.get_json():
+        abort(400)
+
+    data = request.get_json()
+    if "slot" not in data or "facet" not in data or "filler" not in data:
+        abort(400)
+
+    OntologyAPI().remove_property(concept, data["slot"], data["facet"], data["filler"])
+
+    return "OK"
+
+
 ### /ontology/manage - routes for the version management system
 
 
