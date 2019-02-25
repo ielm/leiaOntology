@@ -65,15 +65,15 @@ def api_relations():
     return json.dumps(OntologyAPI().relations(inverses=inverses))
 
 
-### /ontology/edit - routes for the editor and browser ui, both GET and PUT
+### /ontology/view - routes for the editor and browser ui, GET only
 
 
-@app.route("/ontology/edit/", methods=["GET"])
+@app.route("/ontology/view/", methods=["GET"])
 def edit():
-    return redirect("/ontology/edit/all")
+    return redirect("/ontology/view/all")
 
 
-@app.route("/ontology/edit/<concept>", methods=["GET"])
+@app.route("/ontology/view/<concept>", methods=["GET"])
 def edit_concept(concept):
     if "recent" not in session:
         session["recent"] = list()
@@ -82,7 +82,7 @@ def edit_concept(concept):
     if len(results) != 1:
         session["not-found"] = concept
         redirect_url = session["recent"][-1] if len(session["recent"]) > 0 else "all"
-        return redirect("/ontology/edit/" + redirect_url)
+        return redirect("/ontology/view/" + redirect_url)
 
     definition = results[0][concept]
     parents = sorted(definition["is-a"]["value"])
@@ -104,7 +104,6 @@ def edit_concept(concept):
     properties = list(map(lambda p: {"slot": p[0][0], "facet": p[0][1], "fillers": p[1], "status": "local" if "local" in map(lambda f: f["status"], p[1]) else "inherit"}, properties))
     properties = sorted(properties, key=lambda p: (p["slot"], p["facet"]))
     properties = list(properties)
-    print(properties)
 
     payload = {
         "name": concept,
@@ -126,6 +125,9 @@ def edit_concept(concept):
         session.pop("not-found")
 
     return render_template("editor.html", payload=payload)
+
+
+### /ontology/edit - routes for the editor and browser ui, PUT only
 
 
 ### /ontology/manage - routes for the version management system

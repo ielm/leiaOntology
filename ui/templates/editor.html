@@ -48,7 +48,7 @@
 
         function go() {
             var concept = j("#search-input").val();
-            window.location.href = "/ontology/edit/" + concept;
+            window.location.href = "/ontology/view/" + concept;
         }
 
         j(document).ready(function() {
@@ -104,7 +104,7 @@
                             {% set comma = joiner(" • ") %}
                             {% for recent in payload["recent"] %}
                                 {{ comma() }}
-                                <a href="/ontology/edit/{{ recent }}">{{ recent }}</a>
+                                <a href="/ontology/view/{{ recent }}">{{ recent }}</a>
                             {% endfor %}
                         </div>
                     {% endif %}
@@ -120,7 +120,7 @@
                 </div>
                 <div class="card-body">
                     {% for parent in payload.isa %}
-                        <div><a href="/ontology/edit/{{ parent }}">{{ parent }}</a></div>
+                        <div><a href="/ontology/view/{{ parent }}">{{ parent }}</a></div>
                     {% endfor %}
                 </div>
             </div>
@@ -130,7 +130,7 @@
                 </div>
                 <div class="card-body">
                     {% for subclass in payload.subclasses %}
-                        <div><a href="/ontology/edit/{{ subclass }}">{{ subclass }}</a></div>
+                        <div><a href="/ontology/view/{{ subclass }}">{{ subclass }}</a></div>
                     {% endfor %}
                 </div>
             </div>
@@ -140,7 +140,7 @@
                 </div>
                 <div class="card-body">
                     {% for sibling in payload.siblings %}
-                        <div><a href="/ontology/edit/{{ sibling }}">{{ sibling }}</a></div>
+                        <div><a href="/ontology/view/{{ sibling }}">{{ sibling }}</a></div>
                     {% endfor %}
                 </div>
             </div>
@@ -159,19 +159,19 @@
                     <table class="table table-sm table-striped table-borderless">
                         {% for slotfacet in payload["properties"] %}
                             <tr class="row-{{ slotfacet.status }}">
-                                <td><a class="{{ slotfacet.status }}" href="/ontology/edit/{{ slotfacet['slot'] }}">{{ slotfacet["slot"] }}</a></td>
+                                <td><a class="{{ slotfacet.status }}" href="/ontology/view/{{ slotfacet['slot'] }}">{{ slotfacet["slot"] }}</a></td>
                                 <td><span class="{{ slotfacet.status }}">{{ slotfacet["facet"] }}</span></td>
                                 <td>
                                     {% for filler in slotfacet["fillers"] %}
                                         <div>
                                             {% if filler["is_relation"] %}
-                                                <a class="filler {{ filler.status }}" href="/ontology/edit/{{ filler.filler }}">{{ filler.filler }}</a>
+                                                <a class="filler {{ filler.status }}" href="/ontology/view/{{ filler.filler }}">{{ filler.filler }}</a>
                                             {% else %}
                                                 <span class="filler {{ filler.status }}">{{ filler.filler }}</span>
                                             {% endif %}
 
                                             {% if filler["from"] is not none %}
-                                                <span class="from-field">from <a class="from-field" href="/ontology/edit/{{ filler.from }}">{{ filler.from }}</a></span>
+                                                <span class="from-field">from <a class="from-field" href="/ontology/view/{{ filler.from }}">{{ filler.from }}</a></span>
                                             {% endif %}
                                         </div>
                                     {% endfor %}
