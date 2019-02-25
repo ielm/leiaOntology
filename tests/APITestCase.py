@@ -486,3 +486,43 @@ class APIUpdateDefinitionTestCase(unittest.TestCase):
 
         self.assertEqual("definition 2", OntologyAPI().get("concept1", metadata=True)[0]["concept1"]["_metadata"]["definition"])
         self.assertEqual("definition 1", OntologyAPI().get("concept2", metadata=True)[0]["concept2"]["_metadata"]["definition"])
+
+
+class APIInsertPropertyTestCase(unittest.TestCase):
+
+    def setUp(self):
+        client = ont.management.getclient()
+
+        ont.management.DATABASE = "unittest"
+        os.environ[ont.management.ONTOLOGY_ACTIVE] = "unittest"
+
+    def tearDown(self):
+        client = ont.management.getclient()
+        client.drop_database("unittest")
+
+    def test_insert_property(self):
+        concept = mock_concept("concept", localProperties=[
+            {"slot": "test", "facet": "sem", "filler": "value1"},
+            {"slot": "test", "facet": "sem", "filler": "value2"},
+        ])
+
+        OntologyAPI().insert_property("concept", "test", "sem", "value3")
+
+        result = OntologyAPI().get("concept")[0]["concept"]
+        self.assertEqual({"value1", "value2", "value3"}, set(result["test"]["sem"]))
+
+        OntologyAPI().insert_property("concept", "test", "value", "value4")
+
+        result = OntologyAPI().get("concept")[0]["concept"]
+        self.assertEqual({"value1", "value2", "value3"}, set(result["test"]["sem"]))
+        self.assertEqual({"value4"}, set(result["test"]["value"]))
+
+        OntologyAPI().insert_property("concept", "other", "value", "value5")
+
+        result = OntologyAPI().get("concept")[0]["concept"]
+        self.assertEqual({"value1", "value2", "value3"}, set(result["test"]["sem"]))
+        self.assertEqual({"value4"}, set(result["test"]["value"]))
+        self.assertEqual({"value5"}, set(result["other"]["value"]))
+
+        result = OntologyAPI().get("concept", metadata=True)[0]["concept"]
+        self.assertEqual("concept", result["other"]["value"][0]["defined_in"])

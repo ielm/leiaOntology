@@ -18,6 +18,7 @@
         }
         .definition {
             font-style: italic;
+            margin-left: 8px;
         }
         .local {
             color: black;
@@ -46,6 +47,7 @@
             padding: 0rem 0.15rem;
             font-size: 0.65rem;
             line-height: 1.5;
+            width: 18px;
         }
 
         #definition-readonly {
@@ -55,11 +57,25 @@
         #definition-readwrite {
             display: none;
         }
+
+        #insert-property .form-control-sm {
+            margin-right: 5px;
+        }
     </style>
 
     <script>
 
         var concept = "{{ payload.name }}";
+
+        function enable_disable_insert_property() {
+            if ($("#insert-property-slot-field").val() != "" &&
+                $("#insert-property-facet-field").val() != "" &&
+                $("#insert-property-filler-field").val() != "") {
+                $("#insert-property-button").prop("disabled", false);
+            } else {
+                $("#insert-property-button").prop("disabled", true);
+            }
+        }
 
         function edit_definition(definition) {
             var data = {
@@ -68,6 +84,25 @@
 
             $.ajax({
                 url: "/ontology/edit/define/" + concept,
+                method: "POST",
+                data: JSON.stringify(data),
+                contentType: "application/json",
+            }).done(function(data) {
+                location.reload();
+            }).fail(function(error) {
+                console.log(error);
+            });
+        }
+
+        function insert_property(slot, facet, filler) {
+            var data = {
+                "slot": slot,
+                "facet": facet,
+                "filler": filler
+            };
+
+            $.ajax({
+                url: "/ontology/edit/insert/" + concept,
                 method: "POST",
                 data: JSON.stringify(data),
                 contentType: "application/json",
@@ -117,6 +152,21 @@
             $("#definition-readwrite-update-button").on("click", function() {
                 var definition = $("#definition-readwrite-input").val();
                 edit_definition(definition);
+            });
+            $("#insert-property-slot-field").on("keyup", function() {
+                enable_disable_insert_property();
+            });
+            $("#insert-property-facet-field").on("keyup", function() {
+                enable_disable_insert_property();
+            });
+            $("#insert-property-filler-field").on("keyup", function() {
+                enable_disable_insert_property();
+            });
+            $("#insert-property-button").on("click", function() {
+                var slot = $("#insert-property-slot-field").val();
+                var facet = $("#insert-property-facet-field").val();
+                var filler = $("#insert-property-filler-field").val();
+                insert_property(slot, facet, filler);
             });
         });
     </script>
@@ -204,15 +254,25 @@
                 <div class="card-body">
                     <div style="margin-bottom: 10px;">
                         <div id="definition-readonly">
-                            <span class="definition">"{{ payload.metadata.definition }}"</span>
                             <button id="definition-readwrite-button" type="button" class="btn btn-primary inline-edit-button"><i class="far fa-edit"></i></button>
+                            <span class="definition">"{{ payload.metadata.definition }}"</span>
                         </div>
                         <div id="definition-readwrite" class="input-group">
-                            <input id="definition-readwrite-input" type="text" class="form-control" placeholder="{{ payload.metadata.definition }}" value="{{ payload.metadata.definition }}">
+                            <input id="definition-readwrite-input" type="text" class="form-control form-control-sm" placeholder="{{ payload.metadata.definition }}" value="{{ payload.metadata.definition }}">
                             <div class="input-group-append" id="button-addon4">
-                                <button id="definition-readwrite-update-button" class="btn btn-outline-success" type="button"><i class="far fa-save"></i></button>
-                                <button id="definition-readwrite-cancel-button" class="btn btn-outline-danger" type="button"><i class="fas fa-ban"></i></button>
+                                <button id="definition-readwrite-update-button" class="btn btn-sm btn-outline-success" type="button"><i class="far fa-save"></i></button>
+                                <button id="definition-readwrite-cancel-button" class="btn btn-sm btn-outline-danger" type="button"><i class="fas fa-ban"></i></button>
                             </div>
+                        </div>
+                        <div id="insert-property" style="margin-top: 5px;">
+                            <form class="form-inline">
+                            <button id="insert-property-button" disabled type="button" class="btn btn-success inline-edit-button mb-2"><i class="far fa-plus-square"></i></button>
+                            <div class="form-group mx-sm-3 mb-2">
+                                <input type="text" class="form-control form-control-sm" id="insert-property-slot-field" placeholder="Slot">
+                                <input type="text" class="form-control form-control-sm" id="insert-property-facet-field" placeholder="Facet">
+                                <input type="text" class="form-control form-control-sm" id="insert-property-filler-field" placeholder="Filler">
+                            </div>
+                            </form>
                         </div>
                     </div>
                     <table class="table table-sm table-striped table-borderless">

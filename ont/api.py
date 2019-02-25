@@ -241,6 +241,19 @@ class OntologyAPI(object):
             }
         })
 
+    def insert_property(self, concept: str, slot: str, facet: str, filler: str):
+        self.collection.update({
+            "name": concept.lower(),
+        }, {
+            "$push": {
+                "localProperties": {
+                    "slot": slot.lower(),
+                    "facet": facet.lower(),
+                    "filler": filler
+                }
+            }
+        })
+
     def cache(self, concepts):
         for concept in concepts:
             self._cache[concept["name"]] = concept
