@@ -462,3 +462,27 @@ class APISiblingsTestCase(unittest.TestCase):
 
         self.assertEqual(0, len(results))
 
+
+class APIUpdateDefinitionTestCase(unittest.TestCase):
+
+    def setUp(self):
+        client = ont.management.getclient()
+
+        ont.management.DATABASE = "unittest"
+        os.environ[ont.management.ONTOLOGY_ACTIVE] = "unittest"
+
+    def tearDown(self):
+        client = ont.management.getclient()
+        client.drop_database("unittest")
+
+    def test_update_definition(self):
+        concept1 = mock_concept("concept1", "definition 1")
+        concept1 = mock_concept("concept2", "definition 1")
+
+        self.assertEqual("definition 1", OntologyAPI().get("concept1", metadata=True)[0]["concept1"]["_metadata"]["definition"])
+        self.assertEqual("definition 1", OntologyAPI().get("concept2", metadata=True)[0]["concept2"]["_metadata"]["definition"])
+
+        OntologyAPI().update_definition("concept1", "definition 2")
+
+        self.assertEqual("definition 2", OntologyAPI().get("concept1", metadata=True)[0]["concept1"]["_metadata"]["definition"])
+        self.assertEqual("definition 1", OntologyAPI().get("concept2", metadata=True)[0]["concept2"]["_metadata"]["definition"])

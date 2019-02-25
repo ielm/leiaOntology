@@ -69,12 +69,12 @@ def api_relations():
 
 
 @app.route("/ontology/view/", methods=["GET"])
-def edit():
+def view():
     return redirect("/ontology/view/all")
 
 
 @app.route("/ontology/view/<concept>", methods=["GET"])
-def edit_concept(concept):
+def view_concept(concept):
     if "recent" not in session:
         session["recent"] = list()
 
@@ -127,7 +127,21 @@ def edit_concept(concept):
     return render_template("editor.html", payload=payload)
 
 
-### /ontology/edit - routes for the editor and browser ui, PUT only
+### /ontology/edit - routes for the editor api, POST only
+
+
+@app.route("/ontology/edit/define/<concept>", methods=["POST"])
+def edit_define(concept):
+    if not request.get_json():
+        abort(400)
+
+    data = request.get_json()
+    if "definition" not in data:
+        abort(400)
+
+    OntologyAPI().update_definition(concept, data["definition"])
+
+    return "OK"
 
 
 ### /ontology/manage - routes for the version management system

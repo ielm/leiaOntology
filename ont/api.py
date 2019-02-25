@@ -232,6 +232,15 @@ class OntologyAPI(object):
 
         return result
 
+    def update_definition(self, concept: str, definition: str):
+        self.collection.update({
+            "name": concept.lower(),
+        }, {
+            "$set": {
+                "definition": definition
+            }
+        })
+
     def cache(self, concepts):
         for concept in concepts:
             self._cache[concept["name"]] = concept

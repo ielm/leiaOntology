@@ -3,9 +3,10 @@
 <head>
     <meta charset="UTF-8">
     <title>Ontology</title>
-    <script src="https://code.jquery.com/jquery-3.3.1.slim.min.js"></script>
+    <script src="https://code.jquery.com/jquery-3.3.1.min.js" integrity="sha256-FgpCb/KJQlLNfOu91ta32o/NMZxltwRo8QtmkMRdAu8=" crossorigin="anonymous"></script>
     <script src="https://stackpath.bootstrapcdn.com/bootstrap/4.1.3/js/bootstrap.bundle.min.js" integrity="sha384-pjaaA8dDz/5BgdFUPX6M/9SUZv4d12SUPF0axWc+VRZkx5xU3daN+lYb49+Ax+Tl" crossorigin="anonymous"></script>
     <link href="https://stackpath.bootstrapcdn.com/bootstrap/4.1.3/css/bootstrap.min.css" rel="stylesheet" integrity="sha384-MCw98/SFnGE8fJT3GXwEOngsV7Zt27NXFoaoApmYm81iuXoPkFOJwJ8ERdknLPMO" crossorigin="anonymous">
+    <link rel="stylesheet" href="https://use.fontawesome.com/releases/v5.3.1/css/all.css" integrity="sha384-mzrmE5qonljUremFsqc01SB46JvROS7bZs3IO2EmfFsd15uHvIt+Y8vEf7N7fWAU" crossorigin="anonymous">
 
     <style>
         #header-row {
@@ -41,35 +42,81 @@
         .name {
             font-size: larger;
         }
+        .inline-edit-button {
+            padding: 0rem 0.15rem;
+            font-size: 0.65rem;
+            line-height: 1.5;
+        }
+
+        #definition-readonly {
+            display: block;
+        }
+
+        #definition-readwrite {
+            display: none;
+        }
     </style>
 
     <script>
-        var j = jQuery;
 
-        function go() {
-            var concept = j("#search-input").val();
-            window.location.href = "/ontology/view/" + concept;
+        var concept = "{{ payload.name }}";
+
+        function edit_definition(definition) {
+            var data = {
+                "definition": definition
+            };
+
+            $.ajax({
+                url: "/ontology/edit/define/" + concept,
+                method: "POST",
+                data: JSON.stringify(data),
+                contentType: "application/json",
+            }).done(function(data) {
+                location.reload();
+            }).fail(function(error) {
+                console.log(error);
+            });
         }
 
-        j(document).ready(function() {
-            j("#search-button").on("click", function() {
+    </script>
+
+    <script>
+        function go() {
+            var search = $("#search-input").val();
+            window.location.href = "/ontology/view/" + search;
+        }
+
+        $(document).ready(function() {
+            $("#search-button").on("click", function() {
                 go();
             });
-            j("#search-input").on("keyup", function(e) {
+            $("#search-input").on("keyup", function(e) {
                 if (e.key == "Enter") {
                     go();
                 }
             });
-            j("#hide-inherit-filter").on("change", function() {
-                if (j("#hide-inherit-filter")[0].checked) {
-                    j(".row-inherit").hide();
-                    j(".inherit").hide();
-                    j(".from-field").hide();
+            $("#hide-inherit-filter").on("change", function() {
+                if ($("#hide-inherit-filter")[0].checked) {
+                    $(".row-inherit").hide();
+                    $(".inherit").hide();
+                    $(".from-field").hide();
                 } else {
-                    j(".row-inherit").show();
-                    j(".inherit").show();
-                    j(".from-field").show();
+                    $(".row-inherit").show();
+                    $(".inherit").show();
+                    $(".from-field").show();
                 }
+            });
+            $("#definition-readwrite-button").on("click", function() {
+                $("#definition-readonly").css("display", "none");
+                $("#definition-readwrite").css("display", "flex");
+            });
+            $("#definition-readwrite-cancel-button").on("click", function() {
+                $("#definition-readonly").css("display", "block");
+                $("#definition-readwrite").css("display", "none");
+            });
+            $("#definition-readwrite-update-button").on("click", function() {
+                var definition = $("#definition-readwrite-input").val();
+                edit_definition(definition);
             });
         });
     </script>
@@ -155,7 +202,19 @@
                     </div>
                 </div>
                 <div class="card-body">
-                    <p><span class="definition">"{{ payload.metadata.definition }}"</span></p>
+                    <div style="margin-bottom: 10px;">
+                        <div id="definition-readonly">
+                            <span class="definition">"{{ payload.metadata.definition }}"</span>
+                            <button id="definition-readwrite-button" type="button" class="btn btn-primary inline-edit-button"><i class="far fa-edit"></i></button>
+                        </div>
+                        <div id="definition-readwrite" class="input-group">
+                            <input id="definition-readwrite-input" type="text" class="form-control" placeholder="{{ payload.metadata.definition }}" value="{{ payload.metadata.definition }}">
+                            <div class="input-group-append" id="button-addon4">
+                                <button id="definition-readwrite-update-button" class="btn btn-outline-success" type="button"><i class="far fa-save"></i></button>
+                                <button id="definition-readwrite-cancel-button" class="btn btn-outline-danger" type="button"><i class="fas fa-ban"></i></button>
+                            </div>
+                        </div>
+                    </div>
                     <table class="table table-sm table-striped table-borderless">
                         {% for slotfacet in payload["properties"] %}
                             <tr class="row-{{ slotfacet.status }}">
