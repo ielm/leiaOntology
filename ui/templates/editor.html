@@ -158,19 +158,21 @@
                     <p><span class="definition">"{{ payload.metadata.definition }}"</span></p>
                     <table class="table table-sm table-striped table-borderless">
                         {% for slotfacet in payload["properties"] %}
-                            <tr class="row-$slotfacet['status']">
-                                <td><a class="$slotfacet['status']" href="/ontology/edit/{{ slotfacet['slot'] }}">{{ slotfacet["slot"] }}</a></td>
-                                <td><span class="$slotfacet['status']">{{ slotfacet["facet"] }}</span></td>
+                            <tr class="row-{{ slotfacet.status }}">
+                                <td><a class="{{ slotfacet.status }}" href="/ontology/edit/{{ slotfacet['slot'] }}">{{ slotfacet["slot"] }}</a></td>
+                                <td><span class="{{ slotfacet.status }}">{{ slotfacet["facet"] }}</span></td>
                                 <td>
                                     {% for filler in slotfacet["fillers"] %}
                                         <div>
-                                            {{ filler }}
-                                            <!--$if filler["relation"]:-->
-                                                <!--<a class="filler $filler['status']" href="/ontology/browse/$filler['value']">$filler["value"]</a>-->
-                                            <!--$else:-->
-                                                <!--<span class="filler $filler['status']">$filler["value"]</span>-->
-                                            <!--$if filler["from"] is not None:-->
-                                                <!--<span class="from-field">from <a class="from-field" href="/ontology/browse/$filler['from']">$filler["from"]</a></span>-->
+                                            {% if filler["is_relation"] %}
+                                                <a class="filler {{ filler.status }}" href="/ontology/edit/{{ filler.filler }}">{{ filler.filler }}</a>
+                                            {% else %}
+                                                <span class="filler {{ filler.status }}">{{ filler.filler }}</span>
+                                            {% endif %}
+
+                                            {% if filler["from"] is not none %}
+                                                <span class="from-field">from <a class="from-field" href="/ontology/edit/{{ filler.from }}">{{ filler.from }}</a></span>
+                                            {% endif %}
                                         </div>
                                     {% endfor %}
                                 </td>

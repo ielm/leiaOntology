@@ -223,10 +223,12 @@ class OntologyAPI(object):
                 {"$group": {"_id": "result", "inverses": {"$push": "$inverse"}}}
             ]
 
-            inverses = list(self.collection.aggregate(pipeline))[0]
-            inverses = inverses["inverses"]
+            inverses = list(self.collection.aggregate(pipeline))
+            if len(inverses) > 0:
+                inverses = inverses[0]
+                inverses = inverses["inverses"]
 
-            result.extend(inverses)
+                result.extend(inverses)
 
         return result
 
@@ -240,13 +242,17 @@ class OntologyAPI(object):
             "subclasses": {"value": list(map(lambda record: record["name"], self.collection.find({"parents": concept["name"]})))}
         }
 
+        for property in self._inherit(concept, metadata=metadata):
+            self._add_property(output, property, metadata=metadata)
+
         if metadata:
+            relations = self.relations(inverses=True)
+            for property in output:
+                output[property]["is_relation"] = property in relations
+
             output["_metadata"] = {
                 "definition": concept["definition"]
             }
-
-        for property in self._inherit(concept, metadata=metadata):
-            self._add_property(output, property, metadata=metadata)
 
         return {
             concept["name"]: output

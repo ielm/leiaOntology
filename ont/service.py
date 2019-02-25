@@ -91,15 +91,20 @@ def edit_concept(concept):
 
     properties = []
     for slot in results[0][concept]:
-        if slot == "_metadata": continue
+        if slot in ["is-a", "subclasses", "_metadata"]: continue
         for facet in results[0][concept][slot]:
+            if facet in ["is_relation"]: continue
             for filler in results[0][concept][slot][facet]:
+                filler["is_relation"] = results[0][concept][slot]["is_relation"]
+                filler["from"] = None if concept == filler["defined_in"] else filler["defined_in"]
+                filler["status"] = "local" if filler["from"] is None else "inherit"
                 properties.append(((slot, facet), filler))
     properties = groupby(properties, key=lambda p: p[0])
     properties = list(map(lambda p: (p[0], list(map(lambda f: f[1], p[1]))), properties))
-    properties = list(map(lambda p: {"slot": p[0][0], "facet": p[0][1], "fillers": p[1]}, properties))
+    properties = list(map(lambda p: {"slot": p[0][0], "facet": p[0][1], "fillers": p[1], "status": "local" if "local" in map(lambda f: f["status"], p[1]) else "inherit"}, properties))
     properties = sorted(properties, key=lambda p: (p["slot"], p["facet"]))
     properties = list(properties)
+    print(properties)
 
     payload = {
         "name": concept,
@@ -119,8 +124,6 @@ def edit_concept(concept):
     if "not-found" in session:
         payload["error-not-found"] = session["not-found"]
         session.pop("not-found")
-
-    # print(payload)
 
     return render_template("editor.html", payload=payload)
 

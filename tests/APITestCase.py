@@ -177,6 +177,26 @@ class APIGetTestCase(unittest.TestCase):
             "defined_in": "child"
         }, results[0]["child"]["test"]["sem"])
 
+    def test_get_metadata_augments_slots_with_type(self):
+        mock_concept("relation")
+        mock_concept("rel1", parents=["relation"], localProperties=[{"slot": "inverse", "facet": "sem", "filler": "rel1-of"}])
+        mock_concept("rel2", parents=["rel1"], localProperties=[{"slot": "inverse", "facet": "sem", "filler": "rel2-of"}])
+
+        concept = mock_concept("concept", localProperties=[
+            {"slot": "test", "facet": "sem", "filler": "value1"},
+            {"slot": "rel1", "facet": "sem", "filler": "value2"},
+            {"slot": "rel2", "facet": "sem", "filler": "value3"},
+            {"slot": "rel1-of", "facet": "sem", "filler": "value4"},
+            {"slot": "rel2-of", "facet": "sem", "filler": "value4"},
+        ])
+
+        results = OntologyAPI().get("concept", metadata=True)
+        self.assertFalse(results[0]["concept"]["test"]["is_relation"])
+        self.assertTrue(results[0]["concept"]["rel1"]["is_relation"])
+        self.assertTrue(results[0]["concept"]["rel2"]["is_relation"])
+        self.assertTrue(results[0]["concept"]["rel1-of"]["is_relation"])
+        self.assertTrue(results[0]["concept"]["rel2-of"]["is_relation"])
+
 
 class APIAncestorsTestCase(unittest.TestCase):
 
