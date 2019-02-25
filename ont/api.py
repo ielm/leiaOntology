@@ -245,17 +245,23 @@ class OntologyAPI(object):
                 "definition": concept["definition"]
             }
 
-        for property in self._inherit(concept):
-            self._add_property(output, property)
+        for property in self._inherit(concept, metadata=metadata):
+            self._add_property(output, property, metadata=metadata)
 
         return {
             concept["name"]: output
         }
 
-    def _add_property(self, output, property):
+    def _add_property(self, output, property, metadata: bool=False):
         slot = property["slot"]
         facet = property["facet"]
         filler = property["filler"]
+
+        if metadata:
+            filler = {
+                "filler": filler,
+                "defined_in": property["metadata"]["defined_in"]
+            }
 
         if slot not in output:
             output[slot] = {}
@@ -266,8 +272,14 @@ class OntologyAPI(object):
         else:
             output[slot][facet].append(filler)
 
-    def _inherit(self, concept):
+    def _inherit(self, concept, metadata: bool=False):
         properties = concept["localProperties"]
+
+        if metadata:
+            for p in properties:
+                p["metadata"] = {
+                    "defined_in": concept["name"]
+                }
 
         for parent_name in concept["parents"]:
             parent = self._cache[parent_name] if parent_name in self._cache else self.collection.find_one({"name": parent_name})
@@ -275,7 +287,7 @@ class OntologyAPI(object):
             if parent_name not in self._cache:
                 self.cache([parent])
 
-            inherited = self._inherit(parent)
+            inherited = self._inherit(parent, metadata=metadata)
             inherited = self._remove_overridden_fillers(inherited, concept["overriddenFillers"])
             inherited = self._remove_deleted_fillers(inherited, concept["totallyRemovedProperties"])
             inherited = self._prune_list(inherited, properties) # Clean up any duplicates, retaining local copies

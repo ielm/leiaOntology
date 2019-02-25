@@ -157,6 +157,26 @@ class APIGetTestCase(unittest.TestCase):
         results = OntologyAPI().get("concept", metadata=True)
         self.assertEqual([OntologyAPI().format(concept, metadata=True)], results)
 
+    def test_get_metadata_specifies_original_definition_per_filler(self):
+        grandparent = mock_concept("grandparent", localProperties=[{"slot": "test", "facet": "sem", "filler": "value1"}])
+        parent = mock_concept("parent", parents=["grandparent"], localProperties=[{"slot": "test", "facet": "sem", "filler": "value2"}])
+        child = mock_concept("child", parents=["parent"], localProperties=[{"slot": "test", "facet": "sem", "filler": "value3"}])
+
+        results = OntologyAPI().get("child", metadata=True)
+        self.assertEqual(3, len(results[0]["child"]["test"]["sem"]))
+        self.assertIn({
+            "filler": "value1",
+            "defined_in": "grandparent"
+        }, results[0]["child"]["test"]["sem"])
+        self.assertIn({
+            "filler": "value2",
+            "defined_in": "parent"
+        }, results[0]["child"]["test"]["sem"])
+        self.assertIn({
+            "filler": "value3",
+            "defined_in": "child"
+        }, results[0]["child"]["test"]["sem"])
+
 
 class APIAncestorsTestCase(unittest.TestCase):
 

@@ -1,6 +1,7 @@
 from flask import Flask, redirect, request, abort, render_template, session
 from flask_cors import CORS
 from flask_socketio import SocketIO
+from itertools import groupby
 from ont.api import OntologyAPI
 
 import json
@@ -87,7 +88,18 @@ def edit_concept(concept):
     parents = sorted(definition["is-a"]["value"])
     subclasses = sorted(OntologyAPI().descendants(concept, immediate=True))
     siblings = sorted(OntologyAPI().siblings(concept))
-    properties = [] # TODO: OntologyAPI().format(definition)
+
+    properties = []
+    for slot in results[0][concept]:
+        if slot == "_metadata": continue
+        for facet in results[0][concept][slot]:
+            for filler in results[0][concept][slot][facet]:
+                properties.append(((slot, facet), filler))
+    properties = groupby(properties, key=lambda p: p[0])
+    properties = list(map(lambda p: (p[0], list(map(lambda f: f[1], p[1]))), properties))
+    properties = list(map(lambda p: {"slot": p[0][0], "facet": p[0][1], "fillers": p[1]}, properties))
+    properties = sorted(properties, key=lambda p: (p["slot"], p["facet"]))
+    properties = list(properties)
 
     payload = {
         "name": concept,
@@ -108,7 +120,7 @@ def edit_concept(concept):
         payload["error-not-found"] = session["not-found"]
         session.pop("not-found")
 
-    print(payload)
+    # print(payload)
 
     return render_template("editor.html", payload=payload)
 
