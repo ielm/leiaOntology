@@ -174,6 +174,23 @@
             });
         }
 
+        function add_parent(parent) {
+            var data = {
+                "parent": parent
+            };
+
+            $.ajax({
+                url: "/ontology/edit/add_parent/" + concept,
+                method: "POST",
+                data: JSON.stringify(data),
+                contentType: "application/json",
+            }).done(function(data) {
+                location.reload();
+            }).fail(function(error) {
+                console.log(error);
+            });
+        }
+
     </script>
 
     <script>
@@ -250,6 +267,10 @@
                 var filler = target.data("filler");
                 unblock_property(slot, facet, filler);
             });
+            $("#add-parent-button").on("click", function() {
+                var parent = $("#add-parent-field").val();
+                add_parent(parent);
+            });
         });
     </script>
 
@@ -301,6 +322,14 @@
                     {% for parent in payload.isa %}
                         <div><a href="/ontology/view/{{ parent }}">{{ parent }}</a></div>
                     {% endfor %}
+                    <div id="add-parent" style="margin-top: 5px;">
+                        <form class="form-inline">
+                            <button id="add-parent-button" type="button" class="btn btn-success inline-edit-button mb-2"><i class="far fa-plus-square"></i></button>
+                            <div class="form-group mx-sm-2 mb-2">
+                                <input type="text" class="form-control form-control-sm" id="add-parent-field" placeholder="Parent">
+                            </div>
+                        </form>
+                    </div>
                 </div>
             </div>
             <div class="card hierarchy-card">

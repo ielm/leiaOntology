@@ -293,6 +293,15 @@ class OntologyAPI(object):
             }
         })
 
+    def add_parent(self, concept: str, parent: str):
+        self.collection.update_one({
+            "name": concept.lower(),
+        }, {
+            "$push": {
+                "parents": parent
+            }
+        })
+
     def cache(self, concepts):
         for concept in concepts:
             self._cache[concept["name"]] = concept

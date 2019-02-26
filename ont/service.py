@@ -214,6 +214,20 @@ def edit_unblock(concept):
     return "OK"
 
 
+@app.route("/ontology/edit/add_parent/<concept>", methods=["POST"])
+def edit_add_parent(concept):
+    if not request.get_json():
+        abort(400)
+
+    data = request.get_json()
+    if "parent" not in data:
+        abort(400)
+
+    OntologyAPI().add_parent(concept, data["parent"])
+
+    return "OK"
+
+
 ### /ontology/manage - routes for the version management system
 
 

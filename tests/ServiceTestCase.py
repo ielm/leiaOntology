@@ -468,3 +468,34 @@ class APIEditUnblockServiceTestCase(unittest.TestCase):
             "defined_in": "parent",
             "blocked": False
         }], results[0]["child"]["xyz"]["sem"])
+
+
+class APIEditAddParentServiceTestCase(unittest.TestCase):
+
+    def setUp(self):
+        client = ont.management.getclient()
+
+        ont.management.DATABASE = "unittest"
+        os.environ[ont.management.ONTOLOGY_ACTIVE] = "unittest"
+
+        self.app = service.test_client()
+
+    def tearDown(self):
+        client = ont.management.getclient()
+        client.drop_database("unittest")
+
+    def test_add_parent(self):
+        mock_concept("parent")
+        mock_concept("child")
+
+        data = {
+            "parent": "parent"
+        }
+
+        response = self.app.post("/ontology/edit/add_parent/child",
+                                data=json.dumps(data),
+                                content_type="application/json")
+        self.assertEqual(200, response._status_code)
+        self.assertEqual("OK", response.data.decode("utf-8"))
+
+        self.assertEqual(["parent"], OntologyAPI().ancestors("child", immediate=True))

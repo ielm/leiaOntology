@@ -747,3 +747,29 @@ class APIUnblockPropertyTestCase(unittest.TestCase):
             "defined_in": "child",
             "blocked": False
         }, result["test"]["sem"])
+
+
+class APIAddParentTestCase(unittest.TestCase):
+
+    def setUp(self):
+        client = ont.management.getclient()
+
+        ont.management.DATABASE = "unittest"
+        os.environ[ont.management.ONTOLOGY_ACTIVE] = "unittest"
+
+    def tearDown(self):
+        client = ont.management.getclient()
+        client.drop_database("unittest")
+
+    def test_add_parent(self):
+        parent1 = mock_concept("parent1")
+        parent2 = mock_concept("parent2")
+        child = mock_concept("child")
+
+        self.assertEqual([], OntologyAPI().ancestors("child", immediate=True))
+
+        OntologyAPI().add_parent("child", "parent1")
+        self.assertEqual(["parent1"], OntologyAPI().ancestors("child", immediate=True))
+
+        OntologyAPI().add_parent("child", "parent2")
+        self.assertEqual({"parent1", "parent2"}, set(OntologyAPI().ancestors("child", immediate=True)))
