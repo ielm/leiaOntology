@@ -141,6 +141,23 @@ def view_concept(concept):
     return render_template("editor.html", payload=payload)
 
 
+@app.route("/ontology/view/report/<concept>", methods=["GET"])
+def view_report(concept):
+    report = OntologyAPI().report(concept, include_usage=True)
+    report["name"] = concept
+    report["usage"]["inverses"] = sorted(report["usage"]["inverses"], key=lambda k: (k["concept"].lower(), k["slot"], k["facet"]))
+
+    if "recent-reports" not in session:
+        session["recent-reports"] = list()
+
+    if concept in session["recent-reports"]:
+        session["recent-reports"].remove(concept)
+    session["recent-reports"].append(concept)
+    session["recent-reports"] = session["recent-reports"][-10:]
+
+    return render_template("report.html", report=report, recent=session["recent-reports"])
+
+
 ### /ontology/edit - routes for the editor api, POST only
 
 
