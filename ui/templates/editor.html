@@ -18,7 +18,6 @@
         }
         .definition {
             font-style: italic;
-            margin-left: 8px;
         }
         .local {
             color: black;
@@ -391,9 +390,12 @@
                             <button class="btn btn-info" type="button" id="search-button">Go</button>
                         </div>
                         <input id="search-input" type="text" class="form-control" placeholder="" aria-label="Find a concept by name" aria-describedby="search-button">
-                        <div class="input-group-append">
-                            <button class="btn btn-success" type="button" id="new-concept-button" data-toggle="modal" data-target="#addConceptModal">New</button>
-                        </div>
+
+                        {% if editing %}
+                            <div class="input-group-append">
+                                <button class="btn btn-success" type="button" id="new-concept-button" data-toggle="modal" data-target="#addConceptModal">New</button>
+                            </div>
+                        {% endif %}
                     </div>
 
                     {% if "recent" in payload and payload["recent"]|length > 0 %}
@@ -419,18 +421,24 @@
                 <div class="card-body">
                     {% for parent in payload.isa %}
                         <div>
-                            <button type="button" class="btn btn-danger remove-parent-button inline-edit-button" data-parent="{{ parent }}"><i class="fas fa-trash"></i></button>
-                            <a href="/ontology/view/{{ parent }}" style="margin-left: 4px;">{{ parent }}</a>
+                            {% if editing %}
+                                <button type="button" class="btn btn-danger remove-parent-button inline-edit-button" data-parent="{{ parent }}"><i class="fas fa-trash"></i></button>
+                                <a href="/ontology/view/{{ parent }}" style="margin-left: 4px;">{{ parent }}</a>
+                            {% else %}
+                                <a href="/ontology/view/{{ parent }}">{{ parent }}</a>
+                            {% endif %}
                         </div>
                     {% endfor %}
-                    <div id="add-parent" style="margin-top: 5px;">
-                        <form class="form-inline">
-                            <button id="add-parent-button" type="button" class="btn btn-success inline-edit-button mb-2"><i class="far fa-plus-square"></i></button>
-                            <div class="form-group mx-sm-2 mb-2">
-                                <input type="text" class="form-control form-control-sm" id="add-parent-field" placeholder="Parent">
-                            </div>
-                        </form>
-                    </div>
+                    {% if editing %}
+                        <div id="add-parent" style="margin-top: 5px;">
+                            <form class="form-inline">
+                                <button id="add-parent-button" type="button" class="btn btn-success inline-edit-button mb-2"><i class="far fa-plus-square"></i></button>
+                                <div class="form-group mx-sm-2 mb-2">
+                                    <input type="text" class="form-control form-control-sm" id="add-parent-field" placeholder="Parent">
+                                </div>
+                            </form>
+                        </div>
+                    {% endif %}
                 </div>
             </div>
             <div class="card hierarchy-card">
@@ -458,7 +466,11 @@
             <div class="card">
                 <div class="card-header">
                     <a id="report-button" class="btn btn-sm btn-info inline-edit-button mb-1" role="button" href="/ontology/view/report/{{ payload.name }}"><i class="fas fa-chart-pie"></i></a>
-                    <button id="remove-concept-button" class="btn btn-sm btn-danger inline-edit-button mb-1" type="button" data-toggle="modal" data-target="#removeConceptModal"><i class="fas fa-trash"></i></button>
+
+                    {% if editing %}
+                        <button id="remove-concept-button" class="btn btn-sm btn-danger inline-edit-button mb-1" type="button" data-toggle="modal" data-target="#removeConceptModal"><i class="fas fa-trash"></i></button>
+                    {% endif %}
+
                     <span class="name" style="margin-left: 5px;"><strong>{{ payload.name }}</strong></span>
                     <div class="custom-control custom-checkbox float-right">
                         <input type="checkbox" class="custom-control-input" id="hide-inherit-filter">
@@ -468,7 +480,9 @@
                 <div class="card-body">
                     <div style="margin-bottom: 10px;">
                         <div id="definition-readonly">
-                            <button id="definition-readwrite-button" type="button" class="btn btn-primary inline-edit-button"><i class="far fa-edit"></i></button>
+                            {% if editing %}
+                                <button id="definition-readwrite-button" type="button" class="btn btn-primary inline-edit-button" style="margin-right: 8px;"><i class="far fa-edit"></i></button>
+                            {% endif %}
                             <span class="definition">"{{ payload.metadata.definition }}"</span>
                         </div>
                         <div id="definition-readwrite" class="input-group">
@@ -478,16 +492,18 @@
                             </div>
                             <input id="definition-readwrite-input" type="text" class="form-control form-control-sm" placeholder="{{ payload.metadata.definition }}" value="{{ payload.metadata.definition }}">
                         </div>
-                        <div id="insert-property" style="margin-top: 5px;">
-                            <form class="form-inline">
-                            <button id="insert-property-button" disabled type="button" class="btn btn-success inline-edit-button mb-2"><i class="far fa-plus-square"></i></button>
-                            <div class="form-group mx-sm-3 mb-2">
-                                <input type="text" class="form-control form-control-sm" id="insert-property-slot-field" placeholder="Slot">
-                                <input type="text" class="form-control form-control-sm" id="insert-property-facet-field" placeholder="Facet">
-                                <input type="text" class="form-control form-control-sm" id="insert-property-filler-field" placeholder="Filler">
+                        {% if editing %}
+                            <div id="insert-property" style="margin-top: 5px;">
+                                <form class="form-inline">
+                                <button id="insert-property-button" disabled type="button" class="btn btn-success inline-edit-button mb-2"><i class="far fa-plus-square"></i></button>
+                                <div class="form-group mx-sm-3 mb-2">
+                                    <input type="text" class="form-control form-control-sm" id="insert-property-slot-field" placeholder="Slot">
+                                    <input type="text" class="form-control form-control-sm" id="insert-property-facet-field" placeholder="Facet">
+                                    <input type="text" class="form-control form-control-sm" id="insert-property-filler-field" placeholder="Filler">
+                                </div>
+                                </form>
                             </div>
-                            </form>
-                        </div>
+                        {% endif %}
                     </div>
                     <table class="table table-sm table-striped table-borderless">
                         {% for slotfacet in payload["properties"] %}
@@ -497,12 +513,14 @@
                                 <td>
                                     {% for filler in slotfacet["fillers"] %}
                                         <div>
-                                            {% if filler["blocked"] %}
-                                                <button type="button" class="btn btn-success unblock-property-button inline-edit-button" data-slot="{{ slotfacet.slot }}" data-facet="{{ slotfacet.facet }}" data-filler="{{ filler.filler }}"><i class="fas fa-ban"></i></button>
-                                            {% elif filler["from"] is none %}
-                                                <button type="button" class="btn btn-danger remove-property-button inline-edit-button" data-slot="{{ slotfacet.slot }}" data-facet="{{ slotfacet.facet }}" data-filler="{{ filler.filler }}"><i class="fas fa-trash"></i></button>
-                                            {% else %}
-                                                <button type="button" class="btn btn-danger block-property-button inline-edit-button" data-slot="{{ slotfacet.slot }}" data-facet="{{ slotfacet.facet }}" data-filler="{{ filler.filler }}"><i class="fas fa-ban"></i></button>
+                                            {% if editing %}
+                                                {% if filler["blocked"] %}
+                                                    <button type="button" class="btn btn-success unblock-property-button inline-edit-button" data-slot="{{ slotfacet.slot }}" data-facet="{{ slotfacet.facet }}" data-filler="{{ filler.filler }}"><i class="fas fa-ban"></i></button>
+                                                {% elif filler["from"] is none %}
+                                                    <button type="button" class="btn btn-danger remove-property-button inline-edit-button" data-slot="{{ slotfacet.slot }}" data-facet="{{ slotfacet.facet }}" data-filler="{{ filler.filler }}"><i class="fas fa-trash"></i></button>
+                                                {% else %}
+                                                    <button type="button" class="btn btn-danger block-property-button inline-edit-button" data-slot="{{ slotfacet.slot }}" data-facet="{{ slotfacet.facet }}" data-filler="{{ filler.filler }}"><i class="fas fa-ban"></i></button>
+                                                {% endif %}
                                             {% endif %}
 
                                             {% if filler["is_relation"] %}

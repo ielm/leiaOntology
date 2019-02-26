@@ -141,12 +141,16 @@
                     <table class="table table-sm table-striped table-borderless">
                         {% for subclass in report.usage.subclasses %}
                             <tr>
-                                <td><button type="button" class="btn btn-danger remove-child-button inline-edit-button" data-parent="{{ report.name }}" data-child="{{ subclass }}"><i class="fas fa-trash"></i></button></td>
+                                {% if editing %}
+                                    <td><button type="button" class="btn btn-danger remove-child-button inline-edit-button" data-parent="{{ report.name }}" data-child="{{ subclass }}"><i class="fas fa-trash"></i></button></td>
+                                {% endif %}
                                 <td><a href="/ontology/view/{{ subclass }}">{{ subclass }}</a></td>
                             </tr>
                         {% endfor %}
                     </table>
-                    <em>*Removing a subclass breaks the IS-A connection, but does not remove the concept itself.</em>
+                    {% if editing %}
+                        <em>*Removing a subclass breaks the IS-A connection, but does not remove the concept itself.</em>
+                    {% endif %}
                 </div>
             </div>
         </div>
@@ -161,7 +165,9 @@
                     <table class="table table-sm table-striped table-borderless">
                         {% for inverse in report.usage.inverses %}
                             <tr>
-                                <td><button type="button" class="btn btn-danger remove-property-button inline-edit-button" data-concept="{{ inverse.concept }}" data-slot="{{ inverse.slot }}" data-facet="{{ inverse.facet }}" data-filler="{{ inverse.filler }}"><i class="fas fa-trash"></i></button></td>
+                                {% if editing %}
+                                    <td><button type="button" class="btn btn-danger remove-property-button inline-edit-button" data-concept="{{ inverse.concept }}" data-slot="{{ inverse.slot }}" data-facet="{{ inverse.facet }}" data-filler="{{ inverse.filler }}"><i class="fas fa-trash"></i></button></td>
+                                {% endif %}
                                 <td><a href="/ontology/view/{{ inverse.concept }}">{{ inverse.concept }}</a></td>
                                 <td><a href="/ontology/view/{{ inverse.slot }}">{{ inverse.slot }}</a></td>
                                 <td>{{ inverse.facet }}</td>

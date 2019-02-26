@@ -4,6 +4,7 @@ from tests.TestUtils import mock_concept
 
 import json
 import ont.management
+import ont.service
 import os
 import unittest
 
@@ -295,10 +296,16 @@ class APIEditDefineServiceTestCase(unittest.TestCase):
         os.environ[ont.management.ONTOLOGY_ACTIVE] = "unittest"
 
         self.app = service.test_client()
+        ont.service.EDITING_ENABLED = True
 
     def tearDown(self):
         client = ont.management.getclient()
         client.drop_database("unittest")
+
+    def test_403_if_editing_disabled(self):
+        ont.service.EDITING_ENABLED = False
+        response = self.app.post("/ontology/edit/define/test")
+        self.assertEqual(403, response._status_code)
 
     def test_define(self):
         mock_concept("test", definition="abcd")
@@ -326,10 +333,16 @@ class APIEditInsertServiceTestCase(unittest.TestCase):
         os.environ[ont.management.ONTOLOGY_ACTIVE] = "unittest"
 
         self.app = service.test_client()
+        ont.service.EDITING_ENABLED = True
 
     def tearDown(self):
         client = ont.management.getclient()
         client.drop_database("unittest")
+
+    def test_403_if_editing_disabled(self):
+        ont.service.EDITING_ENABLED = False
+        response = self.app.post("/ontology/edit/insert/test")
+        self.assertEqual(403, response._status_code)
 
     def test_insert(self):
         mock_concept("test")
@@ -359,10 +372,16 @@ class APIEditRemoveServiceTestCase(unittest.TestCase):
         os.environ[ont.management.ONTOLOGY_ACTIVE] = "unittest"
 
         self.app = service.test_client()
+        ont.service.EDITING_ENABLED = True
 
     def tearDown(self):
         client = ont.management.getclient()
         client.drop_database("unittest")
+
+    def test_403_if_editing_disabled(self):
+        ont.service.EDITING_ENABLED = False
+        response = self.app.post("/ontology/edit/remove/test")
+        self.assertEqual(403, response._status_code)
 
     def test_remove(self):
         mock_concept("test", localProperties=[
@@ -395,10 +414,16 @@ class APIEditBlockServiceTestCase(unittest.TestCase):
         os.environ[ont.management.ONTOLOGY_ACTIVE] = "unittest"
 
         self.app = service.test_client()
+        ont.service.EDITING_ENABLED = True
 
     def tearDown(self):
         client = ont.management.getclient()
         client.drop_database("unittest")
+
+    def test_403_if_editing_disabled(self):
+        ont.service.EDITING_ENABLED = False
+        response = self.app.post("/ontology/edit/block/test")
+        self.assertEqual(403, response._status_code)
 
     def test_block(self):
         mock_concept("parent", localProperties=[
@@ -436,10 +461,16 @@ class APIEditUnblockServiceTestCase(unittest.TestCase):
         os.environ[ont.management.ONTOLOGY_ACTIVE] = "unittest"
 
         self.app = service.test_client()
+        ont.service.EDITING_ENABLED = True
 
     def tearDown(self):
         client = ont.management.getclient()
         client.drop_database("unittest")
+
+    def test_403_if_editing_disabled(self):
+        ont.service.EDITING_ENABLED = False
+        response = self.app.post("/ontology/edit/unblock/test")
+        self.assertEqual(403, response._status_code)
 
     def test_unblock(self):
         mock_concept("parent", localProperties=[
@@ -479,10 +510,16 @@ class APIEditAddParentServiceTestCase(unittest.TestCase):
         os.environ[ont.management.ONTOLOGY_ACTIVE] = "unittest"
 
         self.app = service.test_client()
+        ont.service.EDITING_ENABLED = True
 
     def tearDown(self):
         client = ont.management.getclient()
         client.drop_database("unittest")
+
+    def test_403_if_editing_disabled(self):
+        ont.service.EDITING_ENABLED = False
+        response = self.app.post("/ontology/edit/add_parent/test")
+        self.assertEqual(403, response._status_code)
 
     def test_add_parent(self):
         mock_concept("parent")
@@ -510,10 +547,16 @@ class APIEditRemoveParentServiceTestCase(unittest.TestCase):
         os.environ[ont.management.ONTOLOGY_ACTIVE] = "unittest"
 
         self.app = service.test_client()
+        ont.service.EDITING_ENABLED = True
 
     def tearDown(self):
         client = ont.management.getclient()
         client.drop_database("unittest")
+
+    def test_403_if_editing_disabled(self):
+        ont.service.EDITING_ENABLED = False
+        response = self.app.post("/ontology/edit/remove_parent/test")
+        self.assertEqual(403, response._status_code)
 
     def test_remove_parent(self):
         mock_concept("parent")
@@ -541,10 +584,16 @@ class APIEditAddConceptParentServiceTestCase(unittest.TestCase):
         os.environ[ont.management.ONTOLOGY_ACTIVE] = "unittest"
 
         self.app = service.test_client()
+        ont.service.EDITING_ENABLED = True
 
     def tearDown(self):
         client = ont.management.getclient()
         client.drop_database("unittest")
+
+    def test_403_if_editing_disabled(self):
+        ont.service.EDITING_ENABLED = False
+        response = self.app.post("/ontology/edit/add_concept")
+        self.assertEqual(403, response._status_code)
 
     def test_add_concept(self):
         mock_concept("parent")
@@ -577,10 +626,16 @@ class APIEditRemoveConceptParentServiceTestCase(unittest.TestCase):
         os.environ[ont.management.ONTOLOGY_ACTIVE] = "unittest"
 
         self.app = service.test_client()
+        ont.service.EDITING_ENABLED = True
 
     def tearDown(self):
         client = ont.management.getclient()
         client.drop_database("unittest")
+
+    def test_403_if_editing_disabled(self):
+        ont.service.EDITING_ENABLED = False
+        response = self.app.post("/ontology/edit/remove_concept/test")
+        self.assertEqual(403, response._status_code)
 
     def test_remove_concept(self):
         concept = mock_concept("concept")

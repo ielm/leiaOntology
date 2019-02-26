@@ -13,15 +13,17 @@
             <a class="nav-link" href="/ontology/manage">Manage</a>
         </li>
     </ul>
-    <ul class="navbar-nav ml-auto">
-        <li id="toggle-edit-button" class="nav-item">
-            {% if editing %}
-                <i class="fas fa-unlock fa-2x"></i>
-            {% else %}
-                <i class="fas fa-lock fa-2x"></i>
-            {% endif %}
-        </li>
-    </ul>
+    {% if editing_enabled %}
+        <ul class="navbar-nav ml-auto">
+            <li id="toggle-edit-button" class="nav-item">
+                {% if editing %}
+                    <i class="fas fa-unlock fa-2x"></i>
+                {% else %}
+                    <i class="fas fa-lock fa-2x"></i>
+                {% endif %}
+            </li>
+        </ul>
+    {% endif %}
 </nav>
 
 <style>

@@ -14,6 +14,7 @@ socketio = SocketIO(app)
 
 app.secret_key = "leia-ontology-service"
 
+EDITING_ENABLED = os.environ["EDITING_ENABLED"].lower() == "true" if "EDITING_ENABLED" in os.environ else True
 
 ### /ontology/api - routes for query, returning JSON formatted results
 
@@ -141,7 +142,7 @@ def view_concept(concept):
         payload["error-not-found"] = session["not-found"]
         session.pop("not-found")
 
-    return render_template("editor.html", payload=payload, editing=session["editing"])
+    return render_template("editor.html", payload=payload, editing=session["editing"] and EDITING_ENABLED, editing_enabled=EDITING_ENABLED)
 
 
 @app.route("/ontology/view/report/<concept>", methods=["GET"])
@@ -161,7 +162,7 @@ def view_report(concept):
     if "editing" not in session:
         session["editing"] = False
 
-    return render_template("report.html", report=report, recent=session["recent-reports"], editing=session["editing"])
+    return render_template("report.html", report=report, recent=session["recent-reports"], editing=session["editing"] and EDITING_ENABLED, editing_enabled=EDITING_ENABLED)
 
 
 @app.route("/ontology/view/toggle/editing")
@@ -179,6 +180,9 @@ def view_toggle_editing():
 
 @app.route("/ontology/edit/define/<concept>", methods=["POST"])
 def edit_define(concept):
+    if not EDITING_ENABLED:
+        abort(403)
+
     if not request.get_json():
         abort(400)
 
@@ -193,6 +197,9 @@ def edit_define(concept):
 
 @app.route("/ontology/edit/insert/<concept>", methods=["POST"])
 def edit_insert(concept):
+    if not EDITING_ENABLED:
+        abort(403)
+
     if not request.get_json():
         abort(400)
 
@@ -207,6 +214,9 @@ def edit_insert(concept):
 
 @app.route("/ontology/edit/remove/<concept>", methods=["POST"])
 def edit_remove(concept):
+    if not EDITING_ENABLED:
+        abort(403)
+
     if not request.get_json():
         abort(400)
 
@@ -221,6 +231,9 @@ def edit_remove(concept):
 
 @app.route("/ontology/edit/block/<concept>", methods=["POST"])
 def edit_block(concept):
+    if not EDITING_ENABLED:
+        abort(403)
+
     if not request.get_json():
         abort(400)
 
@@ -235,6 +248,9 @@ def edit_block(concept):
 
 @app.route("/ontology/edit/unblock/<concept>", methods=["POST"])
 def edit_unblock(concept):
+    if not EDITING_ENABLED:
+        abort(403)
+
     if not request.get_json():
         abort(400)
 
@@ -249,6 +265,9 @@ def edit_unblock(concept):
 
 @app.route("/ontology/edit/add_parent/<concept>", methods=["POST"])
 def edit_add_parent(concept):
+    if not EDITING_ENABLED:
+        abort(403)
+
     if not request.get_json():
         abort(400)
 
@@ -263,6 +282,9 @@ def edit_add_parent(concept):
 
 @app.route("/ontology/edit/remove_parent/<concept>", methods=["POST"])
 def edit_remove_parent(concept):
+    if not EDITING_ENABLED:
+        abort(403)
+
     if not request.get_json():
         abort(400)
 
@@ -277,6 +299,9 @@ def edit_remove_parent(concept):
 
 @app.route("/ontology/edit/add_concept", methods=["POST"])
 def edit_add_concept():
+    if not EDITING_ENABLED:
+        abort(403)
+
     if not request.get_json():
         abort(400)
 
@@ -291,6 +316,9 @@ def edit_add_concept():
 
 @app.route("/ontology/edit/remove_concept/<concept>", methods=["POST"])
 def edit_remove_concept(concept):
+    if not EDITING_ENABLED:
+        abort(403)
+
     if not request.get_json():
         abort(400)
 
@@ -323,7 +351,7 @@ def manage():
         "error": error
     }
 
-    return render_template("manager.html", payload=payload)
+    return render_template("manager.html", payload=payload, editing_enabled=EDITING_ENABLED)
 
 
 @app.route("/ontology/manage/activate", methods=["POST"])
