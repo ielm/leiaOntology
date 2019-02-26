@@ -556,6 +556,67 @@ class APISiblingsTestCase(unittest.TestCase):
         self.assertEqual(0, len(results))
 
 
+class APIReportTestCase(unittest.TestCase):
+
+    def setUp(self):
+        client = ont.management.getclient()
+
+        ont.management.DATABASE = "unittest"
+        os.environ[ont.management.ONTOLOGY_ACTIVE] = "unittest"
+
+    def tearDown(self):
+        client = ont.management.getclient()
+        client.drop_database("unittest")
+
+    def test_report_with_usage(self):
+        concept = mock_concept("concept")
+        child1 = mock_concept("child1", parents=["concept"])
+        child2 = mock_concept("child2", parents=["concept"])
+        other1 = mock_concept("other1", localProperties=[{
+            "slot": "slot1",
+            "facet": "sem",
+            "filler": "concept"
+        }, {
+            "slot": "slot2",
+            "facet": "sem",
+            "filler": "concept"
+        }])
+        other2 = mock_concept("other2", localProperties=[{
+            "slot": "slot3",
+            "facet": "sem",
+            "filler": "concept"
+        }])
+        other3 = mock_concept("other3", localProperties=[{
+            "slot": "slot4",
+            "facet": "sem",
+            "filler": "other1"
+        }])
+
+        report = OntologyAPI().report("concept", include_usage=True)
+
+        self.assertEqual({"child1", "child2"}, set(report["usage"]["subclasses"]))
+        self.assertEqual(3, len(report["usage"]["inverses"]))
+        self.assertIn({
+            "concept": "other1",
+            "slot": "slot1",
+            "facet": "sem",
+            "filler": "concept"
+        }, report["usage"]["inverses"])
+        self.assertIn({
+            "concept": "other1",
+            "slot": "slot2",
+            "facet": "sem",
+            "filler": "concept"
+        }, report["usage"]["inverses"])
+        self.assertIn({
+            "concept": "other2",
+            "slot": "slot3",
+            "facet": "sem",
+            "filler": "concept"
+        }, report["usage"]["inverses"])
+
+
+
 class APIUpdateDefinitionTestCase(unittest.TestCase):
 
     def setUp(self):
