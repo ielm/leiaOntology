@@ -78,6 +78,9 @@ def view_concept(concept):
     if "recent" not in session:
         session["recent"] = list()
 
+    if "editing" not in session:
+        session["editing"] = False
+
     results = OntologyAPI().get(concept, metadata=True)
     if len(results) != 1:
         session["not-found"] = concept
@@ -138,7 +141,7 @@ def view_concept(concept):
         payload["error-not-found"] = session["not-found"]
         session.pop("not-found")
 
-    return render_template("editor.html", payload=payload)
+    return render_template("editor.html", payload=payload, editing=session["editing"])
 
 
 @app.route("/ontology/view/report/<concept>", methods=["GET"])
@@ -155,7 +158,20 @@ def view_report(concept):
     session["recent-reports"].append(concept)
     session["recent-reports"] = session["recent-reports"][-10:]
 
-    return render_template("report.html", report=report, recent=session["recent-reports"])
+    if "editing" not in session:
+        session["editing"] = False
+
+    return render_template("report.html", report=report, recent=session["recent-reports"], editing=session["editing"])
+
+
+@app.route("/ontology/view/toggle/editing")
+def view_toggle_editing():
+    if "editing" not in session:
+        session["editing"] = False
+
+    session["editing"] = not session["editing"]
+
+    return "OK"
 
 
 ### /ontology/edit - routes for the editor api, POST only

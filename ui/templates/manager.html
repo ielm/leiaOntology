@@ -66,6 +66,14 @@
 
 </head>
 <body>
+
+    {% include 'nav.html' %}
+    <script>
+        $(document).ready(function() {
+            $("#nav-manage").addClass("active");
+        });
+    </script>
+
     <div id="main" class="container">
         <h1>Ontology Management</h1>
 
