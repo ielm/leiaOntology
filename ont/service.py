@@ -256,6 +256,20 @@ def edit_add_concept():
     return "OK"
 
 
+@app.route("/ontology/edit/remove_concept/<concept>", methods=["POST"])
+def edit_remove_concept(concept):
+    if not request.get_json():
+        abort(400)
+
+    data = request.get_json()
+    if "include_usages" not in data:
+        abort(400)
+
+    OntologyAPI().remove_concept(concept, include_usages=data["include_usages"])
+
+    return "OK"
+
+
 ### /ontology/manage - routes for the version management system
 
 

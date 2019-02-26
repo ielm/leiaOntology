@@ -886,3 +886,50 @@ class APIAddConceptTestCase(unittest.TestCase):
         self.assertEqual("a definition", results[0]["concept"]["_metadata"]["definition"])
 
         self.assertEqual(["parent"], OntologyAPI().ancestors("concept"))
+
+
+class APIRemoveConceptTestCase(unittest.TestCase):
+
+    def setUp(self):
+        client = ont.management.getclient()
+
+        ont.management.DATABASE = "unittest"
+        os.environ[ont.management.ONTOLOGY_ACTIVE] = "unittest"
+
+    def tearDown(self):
+        client = ont.management.getclient()
+        client.drop_database("unittest")
+
+    def test_remove_concept(self):
+        concept = mock_concept("concept")
+
+        self.assertEqual(1, len(OntologyAPI().get("concept")))
+
+        OntologyAPI().remove_concept("concept")
+
+        self.assertEqual(0, len(OntologyAPI().get("concept")))
+
+    def test_remove_concept_with_usages(self):
+        concept = mock_concept("concept")
+        other = mock_concept("other")
+        child1 = mock_concept("child1", parents=["concept"])
+        child2 = mock_concept("child2", parents=["concept", "other"])
+        other1 = mock_concept("other1", localProperties=[
+            {"slot": "slot1", "facet": "sem", "filler": "concept"},
+            {"slot": "slot2", "facet": "sem", "filler": "concept"},
+            {"slot": "slot3", "facet": "sem", "filler": "other1"},
+        ])
+        other2 = mock_concept("other2", localProperties=[
+            {"slot": "slot1", "facet": "sem", "filler": "other1"},
+        ])
+
+        OntologyAPI().remove_concept("concept", include_usages=True)
+
+        self.assertEqual(0, len(OntologyAPI().get("concept")))
+        self.assertEqual([], OntologyAPI().ancestors("child1"))
+        self.assertEqual(["other"], OntologyAPI().ancestors("child2"))
+
+        self.assertNotIn("slot1", OntologyAPI().get("other1")[0]["other1"])
+        self.assertNotIn("slot2", OntologyAPI().get("other1")[0]["other1"])
+        self.assertIn("other1", OntologyAPI().get("other1")[0]["other1"]["slot3"]["sem"])
+        self.assertIn("other1", OntologyAPI().get("other2")[0]["other2"]["slot1"]["sem"])

@@ -351,6 +351,34 @@ class OntologyAPI(object):
             "totallyRemovedProperties": []
         })
 
+    def remove_concept(self, concept: str, include_usages: bool=False):
+        self.collection.delete_one({
+            "name": concept
+        })
+
+        if include_usages:
+            report = self.report(concept, include_usage=True)
+            for child in report["usage"]["subclasses"]:
+                self.collection.update_one({
+                    "name": child
+                }, {
+                    "$pull": {
+                        "parents": concept
+                    }
+                })
+            for inverse in report["usage"]["inverses"]:
+                self.collection.update_one({
+                    "name": inverse["concept"]
+                }, {
+                    "$pull": {
+                        "localProperties": {
+                            "slot": inverse["slot"],
+                            "facet": inverse["facet"],
+                            "filler": inverse["filler"]
+                        }
+                    }
+                })
+
     def cache(self, concepts):
         for concept in concepts:
             self._cache[concept["name"]] = concept

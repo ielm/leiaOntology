@@ -237,6 +237,23 @@
             });
         }
 
+        function remove_concept(includeUsages) {
+            var data = {
+                "include_usages": includeUsages
+            };
+
+            $.ajax({
+                url: "/ontology/edit/remove_concept/" + concept,
+                method: "POST",
+                data: JSON.stringify(data),
+                contentType: "application/json",
+            }).done(function(data) {
+                window.location = "/ontology/view/all";
+            }).fail(function(error) {
+                console.log(error);
+            });
+        }
+
     </script>
 
     <script>
@@ -337,6 +354,10 @@
                 var definition = $("#add-concept-definition-field").val();
                 add_concept(name, parent, definition);
             });
+            $("#remove-concept-confirm-button").on("click", function() {
+                var includeUsages = $("#remove-concept-with-usages-check")[0].checked;
+                remove_concept(includeUsages);
+            });
         });
     </script>
 
@@ -428,7 +449,8 @@
         <div class="col-md-9">
             <div class="card">
                 <div class="card-header">
-                    <span class="name"><strong>{{ payload.name }}</strong></span>
+                    <button id="remove-concept-button" class="btn btn-sm btn-danger inline-edit-button mb-1" type="button" data-toggle="modal" data-target="#removeConceptModal"><i class="fas fa-trash"></i></button>
+                    <span class="name" style="margin-left: 5px;"><strong>{{ payload.name }}</strong></span>
                     <div class="custom-control custom-checkbox float-right">
                         <input type="checkbox" class="custom-control-input" id="hide-inherit-filter">
                         <label class="custom-control-label" for="hide-inherit-filter">Hide Inherited?</label>
@@ -520,6 +542,38 @@
             </div>
         </div>
     </div>
+
+    <div class="modal fade" id="removeConceptModal" tabindex="-1" role="dialog" aria-labelledby="removeConceptModalLabel" aria-hidden="true">
+        <div class="modal-dialog" role="document">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title" id="removeConceptModalLabel">Remove {{ payload.name }}</h5>
+                    <button type="button" class="close" data-dismiss="modal" aria-label="Close">
+                      <span aria-hidden="true">&times;</span>
+                    </button>
+                </div>
+                <div class="modal-body">
+                    <form class="form">
+                        <div class="form-group mx-sm-3 mb-2">
+                            <p>Are you sure you want to permanently delete this concept?</p>
+                            <div class="form-check">
+                            <input checked class="form-check-input" type="checkbox" value="" id="remove-concept-with-usages-check">
+                            <label class="form-check-label" for="remove-concept-with-usages-check">
+                                Remove usages too?
+                            </label>
+                            <p><em>*Removed usages include IS-A and all other relations.  Children are not removed.</em></p>
+                        </div>
+                        </div>
+                    </form>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-sm btn-secondary" data-dismiss="modal">Cancel</button>
+                    <button id="remove-concept-confirm-button" type="button" class="btn btn-sm btn-danger" data-dismiss="modal">Confirm</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
 </div>
 </body>
 </html>

@@ -566,3 +566,54 @@ class APIEditAddConceptParentServiceTestCase(unittest.TestCase):
         self.assertEqual("a definition", results[0]["child"]["_metadata"]["definition"])
 
         self.assertEqual(["parent"], OntologyAPI().ancestors("child"))
+
+
+class APIEditRemoveConceptParentServiceTestCase(unittest.TestCase):
+
+    def setUp(self):
+        client = ont.management.getclient()
+
+        ont.management.DATABASE = "unittest"
+        os.environ[ont.management.ONTOLOGY_ACTIVE] = "unittest"
+
+        self.app = service.test_client()
+
+    def tearDown(self):
+        client = ont.management.getclient()
+        client.drop_database("unittest")
+
+    def test_remove_concept(self):
+        concept = mock_concept("concept")
+
+        self.assertEqual(1, len(OntologyAPI().get("concept")))
+
+        data = {
+            "include_usages": False
+        }
+
+        response = self.app.post("/ontology/edit/remove_concept/concept",
+                                 data=json.dumps(data),
+                                 content_type="application/json")
+        self.assertEqual(200, response._status_code)
+        self.assertEqual("OK", response.data.decode("utf-8"))
+
+        self.assertEqual(0, len(OntologyAPI().get("concept")))
+
+    def test_remove_concept_with_usages(self):
+        concept = mock_concept("concept")
+        child = mock_concept("child", parents=["concept"])
+
+        self.assertEqual(1, len(OntologyAPI().get("concept")))
+
+        data = {
+            "include_usages": True
+        }
+
+        response = self.app.post("/ontology/edit/remove_concept/concept",
+                                 data=json.dumps(data),
+                                 content_type="application/json")
+        self.assertEqual(200, response._status_code)
+        self.assertEqual("OK", response.data.decode("utf-8"))
+
+        self.assertEqual(0, len(OntologyAPI().get("concept")))
+        self.assertEqual([], OntologyAPI().ancestors("child"))
