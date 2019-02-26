@@ -233,7 +233,7 @@ class OntologyAPI(object):
         return result
 
     def update_definition(self, concept: str, definition: str):
-        self.collection.update({
+        self.collection.update_one({
             "name": concept.lower(),
         }, {
             "$set": {
@@ -242,7 +242,7 @@ class OntologyAPI(object):
         })
 
     def insert_property(self, concept: str, slot: str, facet: str, filler: str):
-        self.collection.update({
+        self.collection.update_one({
             "name": concept.lower(),
         }, {
             "$push": {
@@ -255,11 +255,24 @@ class OntologyAPI(object):
         })
 
     def remove_property(self, concept: str, slot: str, facet: str, filler: str):
-        self.collection.update({
+        self.collection.update_one({
             "name": concept.lower(),
         }, {
             "$pull": {
                 "localProperties": {
+                    "slot": slot.lower(),
+                    "facet": facet.lower(),
+                    "filler": filler
+                }
+            }
+        })
+
+    def block_property(self, concept: str, slot: str, facet: str, filler: str):
+        self.collection.update_one({
+            "name": concept.lower(),
+        }, {
+            "$push": {
+                "totallyRemovedProperties": {
                     "slot": slot.lower(),
                     "facet": facet.lower(),
                     "filler": filler
@@ -301,7 +314,8 @@ class OntologyAPI(object):
         if metadata:
             filler = {
                 "filler": filler,
-                "defined_in": property["metadata"]["defined_in"]
+                "defined_in": property["metadata"]["defined_in"],
+                "blocked": property["metadata"]["blocked"] if "blocked" in property["metadata"] else False
             }
 
         if slot not in output:
@@ -330,7 +344,7 @@ class OntologyAPI(object):
 
             inherited = self._inherit(parent, metadata=metadata)
             inherited = self._remove_overridden_fillers(inherited, concept["overriddenFillers"])
-            inherited = self._remove_deleted_fillers(inherited, concept["totallyRemovedProperties"])
+            inherited = self._remove_deleted_fillers(inherited, concept["totallyRemovedProperties"], metadata=metadata)
             inherited = self._prune_list(inherited, properties) # Clean up any duplicates, retaining local copies
 
             properties = properties + inherited
@@ -341,10 +355,17 @@ class OntologyAPI(object):
         properties = self._prune_list(properties, overridden_fillers)
         return properties
 
-    def _remove_deleted_fillers(self, properties, deleted_fillers):
+    def _remove_deleted_fillers(self, properties, deleted_fillers, metadata=False):
+        if metadata:
+            properties = list(filter(lambda p: not ("blocked" in p["metadata"] and p["metadata"]["blocked"]), properties))
+            for inherited in properties:
+                if {"slot": inherited["slot"], "facet": inherited["facet"], "filler": inherited["filler"]} in deleted_fillers:
+                    inherited["metadata"]["blocked"] = True
+            return properties
+
         return self._prune_list(properties, deleted_fillers)
 
     def _prune_list(self, enclosing_list, to_remove):
-        pruned = [e for e in enclosing_list if e not in to_remove]
+        pruned = [e for e in enclosing_list if {"slot": e["slot"], "facet": e["facet"], "filler": e["filler"]} not in to_remove]
         return pruned
 

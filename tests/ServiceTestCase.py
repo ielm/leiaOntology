@@ -284,3 +284,144 @@ class APIRelationsServiceTestCase(unittest.TestCase):
         self.assertTrue("rel1-of" in response)
         self.assertTrue("rel2-of" in response)
         self.assertTrue("rel3-of" in response)
+
+
+class APIEditDefineServiceTestCase(unittest.TestCase):
+
+    def setUp(self):
+        client = ont.management.getclient()
+
+        ont.management.DATABASE = "unittest"
+        os.environ[ont.management.ONTOLOGY_ACTIVE] = "unittest"
+
+        self.app = service.test_client()
+
+    def tearDown(self):
+        client = ont.management.getclient()
+        client.drop_database("unittest")
+
+    def test_define(self):
+        mock_concept("test", definition="abcd")
+
+        data = {
+            "definition": "xyz"
+        }
+
+        response = self.app.post("/ontology/edit/define/test",
+                                data=json.dumps(data),
+                                content_type="application/json")
+        self.assertEqual(200, response._status_code)
+        self.assertEqual("OK", response.data.decode("utf-8"))
+
+        results = OntologyAPI().get("test", metadata=True)
+        self.assertEqual("xyz", results[0]["test"]["_metadata"]["definition"])
+
+
+class APIEditInsertServiceTestCase(unittest.TestCase):
+
+    def setUp(self):
+        client = ont.management.getclient()
+
+        ont.management.DATABASE = "unittest"
+        os.environ[ont.management.ONTOLOGY_ACTIVE] = "unittest"
+
+        self.app = service.test_client()
+
+    def tearDown(self):
+        client = ont.management.getclient()
+        client.drop_database("unittest")
+
+    def test_insert(self):
+        mock_concept("test")
+
+        data = {
+            "slot": "xyz",
+            "facet": "sem",
+            "filler": "value1"
+        }
+
+        response = self.app.post("/ontology/edit/insert/test",
+                                data=json.dumps(data),
+                                content_type="application/json")
+        self.assertEqual(200, response._status_code)
+        self.assertEqual("OK", response.data.decode("utf-8"))
+
+        results = OntologyAPI().get("test")
+        self.assertEqual(["value1"], results[0]["test"]["xyz"]["sem"])
+
+
+class APIEditRemoveServiceTestCase(unittest.TestCase):
+
+    def setUp(self):
+        client = ont.management.getclient()
+
+        ont.management.DATABASE = "unittest"
+        os.environ[ont.management.ONTOLOGY_ACTIVE] = "unittest"
+
+        self.app = service.test_client()
+
+    def tearDown(self):
+        client = ont.management.getclient()
+        client.drop_database("unittest")
+
+    def test_remove(self):
+        mock_concept("test", localProperties=[
+            {"slot": "xyz", "facet": "sem", "filler": "value1"},
+            {"slot": "xyz", "facet": "sem", "filler": "value2"}
+        ])
+
+        data = {
+            "slot": "xyz",
+            "facet": "sem",
+            "filler": "value2"
+        }
+
+        response = self.app.post("/ontology/edit/remove/test",
+                                data=json.dumps(data),
+                                content_type="application/json")
+        self.assertEqual(200, response._status_code)
+        self.assertEqual("OK", response.data.decode("utf-8"))
+
+        results = OntologyAPI().get("test")
+        self.assertEqual(["value1"], results[0]["test"]["xyz"]["sem"])
+
+
+class APIEditBlockServiceTestCase(unittest.TestCase):
+
+    def setUp(self):
+        client = ont.management.getclient()
+
+        ont.management.DATABASE = "unittest"
+        os.environ[ont.management.ONTOLOGY_ACTIVE] = "unittest"
+
+        self.app = service.test_client()
+
+    def tearDown(self):
+        client = ont.management.getclient()
+        client.drop_database("unittest")
+
+    def test_block(self):
+        mock_concept("parent", localProperties=[
+            {"slot": "xyz", "facet": "sem", "filler": "value1"}
+        ])
+
+        mock_concept("child", parents=["parent"])
+
+        data = {
+            "slot": "xyz",
+            "facet": "sem",
+            "filler": "value1"
+        }
+
+        response = self.app.post("/ontology/edit/block/child",
+                                data=json.dumps(data),
+                                content_type="application/json")
+        self.assertEqual(200, response._status_code)
+        self.assertEqual("OK", response.data.decode("utf-8"))
+
+        results = OntologyAPI().get("child", metadata=True)
+        self.assertEqual([{
+            "filler": "value1",
+            "defined_in": "parent",
+            "blocked": True
+        }], results[0]["child"]["xyz"]["sem"])

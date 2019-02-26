@@ -26,6 +26,10 @@
         .inherit {
             color: grey;
         }
+        .blocked {
+            color: red;
+            text-decoration: line-through;
+        }
         .override {
             color: grey;
             text-decoration: line-through;
@@ -132,6 +136,25 @@
             });
         }
 
+        function block_property(slot, facet, filler) {
+            var data = {
+                "slot": slot,
+                "facet": facet,
+                "filler": filler
+            };
+
+            $.ajax({
+                url: "/ontology/edit/block/" + concept,
+                method: "POST",
+                data: JSON.stringify(data),
+                contentType: "application/json",
+            }).done(function(data) {
+                location.reload();
+            }).fail(function(error) {
+                console.log(error);
+            });
+        }
+
     </script>
 
     <script>
@@ -193,6 +216,13 @@
                 var facet = target.data("facet");
                 var filler = target.data("filler");
                 remove_property(slot, facet, filler);
+            });
+            $(".block-property-button").on("click", function(e) {
+                var target = $(e.currentTarget);
+                var slot = target.data("slot");
+                var facet = target.data("facet");
+                var filler = target.data("filler");
+                block_property(slot, facet, filler);
             });
         });
     </script>
@@ -309,10 +339,12 @@
                                 <td>
                                     {% for filler in slotfacet["fillers"] %}
                                         <div>
-                                            {% if filler["from"] is none %}
-                                                <button type="button" class="btn btn-danger remove-property-button inline-edit-button" data-slot="{{ slotfacet.slot }}" data-facet="{{ slotfacet.facet }}" data-filler="{{ filler.filler }}"><i class="fas fa-ban"></i></button>
+                                            {% if filler["blocked"] %}
+                                                <button disabled type="button" class="btn btn-success unblock-property-button inline-edit-button" data-slot="{{ slotfacet.slot }}" data-facet="{{ slotfacet.facet }}" data-filler="{{ filler.filler }}"><i class="fas fa-ban"></i></button>
+                                            {% elif filler["from"] is none %}
+                                                <button type="button" class="btn btn-danger remove-property-button inline-edit-button" data-slot="{{ slotfacet.slot }}" data-facet="{{ slotfacet.facet }}" data-filler="{{ filler.filler }}"><i class="fas fa-trash"></i></button>
                                             {% else %}
-                                                <button disabled type="button" class="btn btn-danger block-property-button inline-edit-button"><i class="fas fa-ban"></i></button>
+                                                <button type="button" class="btn btn-danger block-property-button inline-edit-button" data-slot="{{ slotfacet.slot }}" data-facet="{{ slotfacet.facet }}" data-filler="{{ filler.filler }}"><i class="fas fa-ban"></i></button>
                                             {% endif %}
 
                                             {% if filler["is_relation"] %}

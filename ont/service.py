@@ -97,11 +97,25 @@ def view_concept(concept):
             for filler in results[0][concept][slot][facet]:
                 filler["is_relation"] = results[0][concept][slot]["is_relation"]
                 filler["from"] = None if concept == filler["defined_in"] else filler["defined_in"]
-                filler["status"] = "local" if filler["from"] is None else "inherit"
+                filler["status"] = "local"
+                if filler["blocked"]:
+                    filler["status"] = "blocked"
+                elif filler["from"] is not None:
+                    filler["status"] = "inherit"
+
                 properties.append(((slot, facet), filler))
     properties = groupby(properties, key=lambda p: p[0])
     properties = list(map(lambda p: (p[0], list(map(lambda f: f[1], p[1]))), properties))
-    properties = list(map(lambda p: {"slot": p[0][0], "facet": p[0][1], "fillers": p[1], "status": "local" if "local" in map(lambda f: f["status"], p[1]) else "inherit"}, properties))
+
+    def determine_slot_facet_status(fillers):
+        unique_filler_statuses = set(map(lambda f: f["status"], fillers))
+        if "local" in unique_filler_statuses:
+            return "local"
+        if {"blocked"} == unique_filler_statuses:
+            return "blocked"
+        return "inherit"
+
+    properties = list(map(lambda p: {"slot": p[0][0], "facet": p[0][1], "fillers": p[1], "status": determine_slot_facet_status(p[1])}, properties))
     properties = sorted(properties, key=lambda p: (p["slot"], p["facet"]))
     properties = list(properties)
 
@@ -168,6 +182,20 @@ def edit_remove(concept):
         abort(400)
 
     OntologyAPI().remove_property(concept, data["slot"], data["facet"], data["filler"])
+
+    return "OK"
+
+
+@app.route("/ontology/edit/block/<concept>", methods=["POST"])
+def edit_block(concept):
+    if not request.get_json():
+        abort(400)
+
+    data = request.get_json()
+    if "slot" not in data or "facet" not in data or "filler" not in data:
+        abort(400)
+
+    OntologyAPI().block_property(concept, data["slot"], data["facet"], data["filler"])
 
     return "OK"
 
