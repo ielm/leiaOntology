@@ -81,6 +81,16 @@
             }
         }
 
+        function enable_disable_add_concept() {
+            if ($("#add-concept-name-field").val() != "" &&
+                $("#add-concept-parent-field").val() != "" &&
+                $("#add-concept-definition-field").val() != "") {
+                $("#add-concept-button").prop("disabled", false);
+            } else {
+                $("#add-concept-button").prop("disabled", true);
+            }
+        }
+
         function edit_definition(definition) {
             var data = {
                 "definition": definition
@@ -208,6 +218,25 @@
             });
         }
 
+        function add_concept(name, parent, definition) {
+            var data = {
+                "concept": name,
+                "parent": parent,
+                "definition": definition
+            };
+
+            $.ajax({
+                url: "/ontology/edit/add_concept",
+                method: "POST",
+                data: JSON.stringify(data),
+                contentType: "application/json",
+            }).done(function(data) {
+                window.location = "/ontology/view/" + name;
+            }).fail(function(error) {
+                console.log(error);
+            });
+        }
+
     </script>
 
     <script>
@@ -293,6 +322,21 @@
                 var parent = target.data("parent");
                 remove_parent(parent);
             });
+            $("#add-concept-name-field").on("keyup", function() {
+                enable_disable_add_concept();
+            });
+            $("#add-concept-parent-field").on("keyup", function() {
+                enable_disable_add_concept();
+            });
+            $("#add-concept-definition-field").on("keyup", function() {
+                enable_disable_add_concept();
+            });
+            $("#add-concept-button").on("click", function() {
+                var name = $("#add-concept-name-field").val();
+                var parent = $("#add-concept-parent-field").val();
+                var definition = $("#add-concept-definition-field").val();
+                add_concept(name, parent, definition);
+            });
         });
     </script>
 
@@ -315,9 +359,12 @@
 
                     <div class="input-group mb-3">
                         <div class="input-group-prepend">
-                            <button class="btn btn-success" type="button" id="search-button">Go</button>
+                            <button class="btn btn-info" type="button" id="search-button">Go</button>
                         </div>
                         <input id="search-input" type="text" class="form-control" placeholder="" aria-label="Find a concept by name" aria-describedby="search-button">
+                        <div class="input-group-append">
+                            <button class="btn btn-success" type="button" id="new-concept-button" data-toggle="modal" data-target="#addConceptModal">New</button>
+                        </div>
                     </div>
 
                     {% if "recent" in payload and payload["recent"]|length > 0 %}
@@ -442,6 +489,33 @@
                             </tr>
                         {% endfor %}
                     </table>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="modal fade" id="addConceptModal" tabindex="-1" role="dialog" aria-labelledby="addConceptModalLabel" aria-hidden="true">
+        <div class="modal-dialog" role="document">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title" id="addConceptModalLabel">Add New Concept</h5>
+                    <button type="button" class="close" data-dismiss="modal" aria-label="Close">
+                      <span aria-hidden="true">&times;</span>
+                    </button>
+                </div>
+                <div class="modal-body">
+                    <form class="form">
+                        <div class="form-group mx-sm-3 mb-2">
+                            <input type="text" class="form-control form-control-sm" id="add-concept-name-field" placeholder="Concept" style="margin-bottom: 5px;">
+                            <input type="text" class="form-control form-control-sm" id="add-concept-parent-field" placeholder="Parent" style="margin-bottom: 5px;">
+                            <input type="text" class="form-control form-control-sm" id="add-concept-definition-field" placeholder="Definition" style="margin-bottom: 5px;">
+                            <p><em>*Additional parents can be defined after the concept has been created.</em></p>
+                        </div>
+                    </form>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-sm btn-secondary" data-dismiss="modal">Cancel</button>
+                    <button id="add-concept-button" disabled type="button" class="btn btn-sm btn-success" data-dismiss="modal">Add</button>
                 </div>
             </div>
         </div>

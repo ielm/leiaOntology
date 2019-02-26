@@ -311,6 +311,19 @@ class OntologyAPI(object):
             }
         })
 
+    def add_concept(self, concept: str, parent: str, definition: str):
+        self.collection.insert_one({
+            "name": concept,
+            "parents": [parent],
+            "definition": definition,
+            "notes": "",
+            "reified": False,
+            "reified_in": "",
+            "localProperties": [],
+            "overriddenFillers": [],
+            "totallyRemovedProperties": []
+        })
+
     def cache(self, concepts):
         for concept in concepts:
             self._cache[concept["name"]] = concept

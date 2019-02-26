@@ -799,3 +799,29 @@ class APIRemoveParentTestCase(unittest.TestCase):
 
         OntologyAPI().remove_parent("child", "parent2")
         self.assertEqual([], OntologyAPI().ancestors("child", immediate=True))
+
+
+class APIAddConceptTestCase(unittest.TestCase):
+
+    def setUp(self):
+        client = ont.management.getclient()
+
+        ont.management.DATABASE = "unittest"
+        os.environ[ont.management.ONTOLOGY_ACTIVE] = "unittest"
+
+    def tearDown(self):
+        client = ont.management.getclient()
+        client.drop_database("unittest")
+
+    def test_add_concept(self):
+        parent = mock_concept("parent")
+
+        self.assertEqual([], OntologyAPI().get("concept"))
+
+        OntologyAPI().add_concept("concept", "parent", "a definition")
+
+        results = OntologyAPI().get("concept", metadata=True)
+        self.assertEqual(1, len(results))
+        self.assertEqual("a definition", results[0]["concept"]["_metadata"]["definition"])
+
+        self.assertEqual(["parent"], OntologyAPI().ancestors("concept"))
