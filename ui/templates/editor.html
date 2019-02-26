@@ -155,6 +155,25 @@
             });
         }
 
+        function unblock_property(slot, facet, filler) {
+            var data = {
+                "slot": slot,
+                "facet": facet,
+                "filler": filler
+            };
+
+            $.ajax({
+                url: "/ontology/edit/unblock/" + concept,
+                method: "POST",
+                data: JSON.stringify(data),
+                contentType: "application/json",
+            }).done(function(data) {
+                location.reload();
+            }).fail(function(error) {
+                console.log(error);
+            });
+        }
+
     </script>
 
     <script>
@@ -223,6 +242,13 @@
                 var facet = target.data("facet");
                 var filler = target.data("filler");
                 block_property(slot, facet, filler);
+            });
+            $(".unblock-property-button").on("click", function(e) {
+                var target = $(e.currentTarget);
+                var slot = target.data("slot");
+                var facet = target.data("facet");
+                var filler = target.data("filler");
+                unblock_property(slot, facet, filler);
             });
         });
     </script>
@@ -314,11 +340,11 @@
                             <span class="definition">"{{ payload.metadata.definition }}"</span>
                         </div>
                         <div id="definition-readwrite" class="input-group">
-                            <input id="definition-readwrite-input" type="text" class="form-control form-control-sm" placeholder="{{ payload.metadata.definition }}" value="{{ payload.metadata.definition }}">
-                            <div class="input-group-append" id="button-addon4">
-                                <button id="definition-readwrite-update-button" class="btn btn-sm btn-outline-success" type="button"><i class="far fa-save"></i></button>
-                                <button id="definition-readwrite-cancel-button" class="btn btn-sm btn-outline-danger" type="button"><i class="fas fa-ban"></i></button>
+                            <div class="input-group-prepend">
+                                <button id="definition-readwrite-update-button" class="btn btn-sm btn-success" type="button"><i class="far fa-save"></i></button>
+                                <button id="definition-readwrite-cancel-button" class="btn btn-sm btn-danger" type="button"><i class="fas fa-ban"></i></button>
                             </div>
+                            <input id="definition-readwrite-input" type="text" class="form-control form-control-sm" placeholder="{{ payload.metadata.definition }}" value="{{ payload.metadata.definition }}">
                         </div>
                         <div id="insert-property" style="margin-top: 5px;">
                             <form class="form-inline">
@@ -340,7 +366,7 @@
                                     {% for filler in slotfacet["fillers"] %}
                                         <div>
                                             {% if filler["blocked"] %}
-                                                <button disabled type="button" class="btn btn-success unblock-property-button inline-edit-button" data-slot="{{ slotfacet.slot }}" data-facet="{{ slotfacet.facet }}" data-filler="{{ filler.filler }}"><i class="fas fa-ban"></i></button>
+                                                <button type="button" class="btn btn-success unblock-property-button inline-edit-button" data-slot="{{ slotfacet.slot }}" data-facet="{{ slotfacet.facet }}" data-filler="{{ filler.filler }}"><i class="fas fa-ban"></i></button>
                                             {% elif filler["from"] is none %}
                                                 <button type="button" class="btn btn-danger remove-property-button inline-edit-button" data-slot="{{ slotfacet.slot }}" data-facet="{{ slotfacet.facet }}" data-filler="{{ filler.filler }}"><i class="fas fa-trash"></i></button>
                                             {% else %}

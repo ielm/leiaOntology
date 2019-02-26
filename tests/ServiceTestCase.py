@@ -425,3 +425,46 @@ class APIEditBlockServiceTestCase(unittest.TestCase):
             "defined_in": "parent",
             "blocked": True
         }], results[0]["child"]["xyz"]["sem"])
+
+
+class APIEditUnblockServiceTestCase(unittest.TestCase):
+
+    def setUp(self):
+        client = ont.management.getclient()
+
+        ont.management.DATABASE = "unittest"
+        os.environ[ont.management.ONTOLOGY_ACTIVE] = "unittest"
+
+        self.app = service.test_client()
+
+    def tearDown(self):
+        client = ont.management.getclient()
+        client.drop_database("unittest")
+
+    def test_unblock(self):
+        mock_concept("parent", localProperties=[
+            {"slot": "xyz", "facet": "sem", "filler": "value1"}
+        ])
+
+        mock_concept("child", parents=["parent"], totallyRemovedProperties=[
+            {"slot": "xyz", "facet": "sem", "filler": "value1"}
+        ])
+
+        data = {
+            "slot": "xyz",
+            "facet": "sem",
+            "filler": "value1"
+        }
+
+        response = self.app.post("/ontology/edit/unblock/child",
+                                data=json.dumps(data),
+                                content_type="application/json")
+        self.assertEqual(200, response._status_code)
+        self.assertEqual("OK", response.data.decode("utf-8"))
+
+        results = OntologyAPI().get("child", metadata=True)
+        self.assertEqual([{
+            "filler": "value1",
+            "defined_in": "parent",
+            "blocked": False
+        }], results[0]["child"]["xyz"]["sem"])

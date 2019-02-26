@@ -280,6 +280,19 @@ class OntologyAPI(object):
             }
         })
 
+    def unblock_property(self, concept: str, slot: str, facet: str, filler: str):
+        self.collection.update_one({
+            "name": concept.lower(),
+        }, {
+            "$pull": {
+                "totallyRemovedProperties": {
+                    "slot": slot.lower(),
+                    "facet": facet.lower(),
+                    "filler": filler
+                }
+            }
+        })
+
     def cache(self, concepts):
         for concept in concepts:
             self._cache[concept["name"]] = concept

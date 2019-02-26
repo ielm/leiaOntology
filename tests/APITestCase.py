@@ -702,3 +702,48 @@ class APIBlockPropertyTestCase(unittest.TestCase):
             "defined_in": "child",
             "blocked": False
         }, result["test"]["sem"])
+
+
+class APIUnblockPropertyTestCase(unittest.TestCase):
+
+    def setUp(self):
+        client = ont.management.getclient()
+
+        ont.management.DATABASE = "unittest"
+        os.environ[ont.management.ONTOLOGY_ACTIVE] = "unittest"
+
+    def tearDown(self):
+        client = ont.management.getclient()
+        client.drop_database("unittest")
+
+    def test_unblock_property(self):
+        parent = mock_concept("parent", localProperties=[
+            {"slot": "test", "facet": "sem", "filler": "value1"},
+        ])
+
+        child = mock_concept("child",
+                             parents=["parent"],
+                             localProperties=[{"slot": "test", "facet": "sem", "filler": "value2"}],
+                             totallyRemovedProperties=[{"slot": "test", "facet": "sem", "filler": "value1"}]
+                             )
+
+        OntologyAPI().unblock_property("child", "test", "sem", "value1")
+
+        result = OntologyAPI().get("parent")[0]["parent"]
+        self.assertEqual({"value1"}, set(result["test"]["sem"]))
+
+        result = OntologyAPI().get("child")[0]["child"]
+        self.assertEqual({"value1", "value2"}, set(result["test"]["sem"]))
+
+        result = OntologyAPI().get("child", metadata=True)[0]["child"]
+        self.assertEqual(2, len(result["test"]["sem"]))
+        self.assertIn({
+            "filler": "value1",
+            "defined_in": "parent",
+            "blocked": False
+        }, result["test"]["sem"])
+        self.assertIn({
+            "filler": "value2",
+            "defined_in": "child",
+            "blocked": False
+        }, result["test"]["sem"])
