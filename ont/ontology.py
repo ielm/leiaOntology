@@ -26,6 +26,44 @@ class Ontology():
 
         raise Exception("Concept " + item + " not found.")
 
+    def __rpost(self, path, data=None):
+        url = "http://" + self.host + ":" + str(self.port) + path
+
+        if data is None:
+            data = {}
+
+        def post_python2(ontology, url, data):
+            import urllib2
+            data = json.dumps(data)
+            request = urllib2.Request(url, data, {'Content-Type': 'application/json'})
+            if self.cookie is not None:
+                request.add_header("cookie", self.cookie)
+
+            f = urllib2.urlopen(request)
+            response = f.read()
+            ontology.cookie = response.headers.get("Set-Cookie")
+
+            f.close()
+            return response
+
+        def post_python3(ontology, url, data):
+            from urllib.request import Request, urlopen
+
+            data = json.dumps(data).encode('utf8')
+            request = Request(url, data=data, headers={'content-type': 'application/json'})
+            if self.cookie is not None:
+                request.add_header("cookie", self.cookie)
+
+            response = urlopen(request)
+            ontology.cookie = response.headers.get("Set-Cookie")
+
+            return response
+
+        if sys.version_info[0] < 3:
+            return post_python2(self, url, data)
+        else:
+            return post_python3(self, url, data)
+
     def __rget(self, path, params=None):
         url = "http://" + self.host + ":" + str(self.port) + path
 
@@ -139,46 +177,29 @@ class Ontology():
         results = self.__rget("/ontology/api/relations", params={"inverses": inverses})
         return json.loads(results)
 
+    def update_definition(self, concept: str, definition: str):
+        self.__rpost("/ontology/edit/define/" + concept, data={"definition": definition})
 
-if __name__ == "__main__":
-    o = Ontology(port=5003)
-    o.cookie = "webpy_session_id=0f2ba5e1330a12db1fa1aabbb2532e117da65aa9; Path=/; httponly"
+    def insert_property(self, concept: str, slot: str, facet: str, filler: str):
+        self.__rpost("/ontology/edit/insert/" + concept, data={"slot": slot, "facet": facet, "filler": filler})
 
-    print(o.get(["xyzabc"]))
-    print(o.get(["tick", "automobile"]))
-    # print(o.ancestors("tick", immediate=True, details=True))
-    # print(o.descendants("mite", immediate=True, details=True))
-    # print(o.is_parent("mite", "event"))
-    # print(o.exists("mite"))
-    # print(o.get_subtree("mite"))
-    # print(o.has_property("mite", "has-object-as-part"))
-    # print(o.get_constraints("mite", "has-object-as-part"))
-    # print(o.get_inverses("has-object-as-part"))
+    def remove_property(self, concept: str, slot: str, facet: str, filler: str):
+        self.__rpost("/ontology/edit/remove/" + concept, data={"slot": slot, "facet": facet, "filler": filler})
 
-    print("benchmarks:")
+    def block_property(self, concept: str, slot: str, facet: str, filler: str):
+        self.__rpost("/ontology/edit/block/" + concept, data={"slot": slot, "facet": facet, "filler": filler})
 
-    import time
-    def timeit(func, iterations, description, *args, **kwargs):
-        start = time.time()
-        for i in range(0, iterations, 1):
-            func(*args, **kwargs)
-        end = time.time()
-        print("Time to " + description + " x" + str(iterations) + " = " + str(end - start))
+    def unblock_property(self, concept: str, slot: str, facet: str, filler: str):
+        self.__rpost("/ontology/edit/unblock/" + concept, data={"slot": slot, "facet": facet, "filler": filler})
 
-    timeit(o.get, 5, "Get 'tick'", ["tick"])
-    timeit(o.get, 5, "Get 'automobile'", ["automobile"])
-    timeit(o.get, 5, "Get 'tick and automobile'", ["tick", "automobile"])
-    timeit(o.ancestors, 5, "Ancestors 'tick'", ["tick"])
-    timeit(o.ancestors, 5, "Ancestors 'tick' (immediate)", ["tick"], immediate=True)
-    timeit(o.ancestors, 5, "Ancestors 'tick' (details)", ["tick"], details=True)
-    timeit(o.ancestors, 5, "Ancestors 'tick' (paths)", ["tick"], paths=True)
-    timeit(o.descendants, 5, "Descendants 'mite'", ["mite"])
-    timeit(o.descendants, 5, "Descendants 'mite' (immediate)", ["mite"], immediate=True)
-    timeit(o.descendants, 5, "Descendants 'mite' (details)", ["mite"], details=True)
-    timeit(o.descendants, 5, "Descendants 'mite' (paths)", ["mite"], paths=True)
-    timeit(o.is_parent, 5, "Is parent 'mite' / 'event'", "mite", "event")
-    timeit(o.exists, 5, "Exists 'mite'", "mite")
-    timeit(o.get_subtree, 5, "Get subtree 'mite'", "mite")
-    timeit(o.has_property, 5, "Has property 'mite' / 'has-object-as-part'", "mite", "has-object-as-part")
-    timeit(o.get_constraints, 5, "Get constraints 'mite' / 'has-object-as-part'", "mite", "has-object-as-part")
-    timeit(o.get_inverses, 5, "Get inverses 'has-object-as-part'", "has-object-as-part")
+    def add_parent(self, concept: str, parent: str):
+        self.__rpost("/ontology/edit/add_parent/" + concept, data={"parent": parent})
+
+    def remove_parent(self, concept: str, parent: str):
+        self.__rpost("/ontology/edit/remove_parent/" + concept, data={"parent": parent})
+
+    def add_concept(self, concept: str, parent: str, definition: str):
+        self.__rpost("/ontology/edit/add_concept", data={"concept": concept, "parent": parent, "definition": definition})
+
+    def remove_concept(self, concept: str, include_usages: bool=True):
+        self.__rpost("/ontology/edit/remove_concept/" + concept, data={"include_usages": include_usages})

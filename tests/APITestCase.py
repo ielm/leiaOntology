@@ -616,7 +616,6 @@ class APIReportTestCase(unittest.TestCase):
         }, report["usage"]["inverses"])
 
 
-
 class APIUpdateDefinitionTestCase(unittest.TestCase):
 
     def setUp(self):
