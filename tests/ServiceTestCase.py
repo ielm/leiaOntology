@@ -499,3 +499,34 @@ class APIEditAddParentServiceTestCase(unittest.TestCase):
         self.assertEqual("OK", response.data.decode("utf-8"))
 
         self.assertEqual(["parent"], OntologyAPI().ancestors("child", immediate=True))
+
+
+class APIEditRemoveParentServiceTestCase(unittest.TestCase):
+
+    def setUp(self):
+        client = ont.management.getclient()
+
+        ont.management.DATABASE = "unittest"
+        os.environ[ont.management.ONTOLOGY_ACTIVE] = "unittest"
+
+        self.app = service.test_client()
+
+    def tearDown(self):
+        client = ont.management.getclient()
+        client.drop_database("unittest")
+
+    def test_remove_parent(self):
+        mock_concept("parent")
+        mock_concept("child", parents=["parent"])
+
+        data = {
+            "parent": "parent"
+        }
+
+        response = self.app.post("/ontology/edit/remove_parent/child",
+                                data=json.dumps(data),
+                                content_type="application/json")
+        self.assertEqual(200, response._status_code)
+        self.assertEqual("OK", response.data.decode("utf-8"))
+
+        self.assertEqual([], OntologyAPI().ancestors("child", immediate=True))

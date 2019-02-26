@@ -191,6 +191,23 @@
             });
         }
 
+        function remove_parent(parent) {
+            var data = {
+                "parent": parent
+            };
+
+            $.ajax({
+                url: "/ontology/edit/remove_parent/" + concept,
+                method: "POST",
+                data: JSON.stringify(data),
+                contentType: "application/json",
+            }).done(function(data) {
+                location.reload();
+            }).fail(function(error) {
+                console.log(error);
+            });
+        }
+
     </script>
 
     <script>
@@ -271,6 +288,11 @@
                 var parent = $("#add-parent-field").val();
                 add_parent(parent);
             });
+            $(".remove-parent-button").on("click", function(e) {
+                var target = $(e.currentTarget);
+                var parent = target.data("parent");
+                remove_parent(parent);
+            });
         });
     </script>
 
@@ -320,7 +342,10 @@
                 </div>
                 <div class="card-body">
                     {% for parent in payload.isa %}
-                        <div><a href="/ontology/view/{{ parent }}">{{ parent }}</a></div>
+                        <div>
+                            <button type="button" class="btn btn-danger remove-parent-button inline-edit-button" data-parent="{{ parent }}"><i class="fas fa-trash"></i></button>
+                            <a href="/ontology/view/{{ parent }}" style="margin-left: 4px;">{{ parent }}</a>
+                        </div>
                     {% endfor %}
                     <div id="add-parent" style="margin-top: 5px;">
                         <form class="form-inline">

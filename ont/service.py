@@ -228,6 +228,20 @@ def edit_add_parent(concept):
     return "OK"
 
 
+@app.route("/ontology/edit/remove_parent/<concept>", methods=["POST"])
+def edit_remove_parent(concept):
+    if not request.get_json():
+        abort(400)
+
+    data = request.get_json()
+    if "parent" not in data:
+        abort(400)
+
+    OntologyAPI().remove_parent(concept, data["parent"])
+
+    return "OK"
+
+
 ### /ontology/manage - routes for the version management system
 
 
