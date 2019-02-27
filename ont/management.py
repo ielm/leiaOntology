@@ -33,6 +33,10 @@ def handle():
     return db[active()]
 
 
+def can_connect():
+    return active() in list_collections()
+
+
 def list_collections():
     client = getclient()
     db = client[DATABASE]

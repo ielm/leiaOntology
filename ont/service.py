@@ -97,6 +97,11 @@ def view_concept(concept):
     if ont.management.active() is None:
         return redirect("/ontology/manage")
 
+    if not ont.management.can_connect():
+        if "not-found" in session:
+            session.pop("not-found")
+        return redirect("/ontology/manage")
+
     if "recent" not in session:
         session["recent"] = list()
 
@@ -170,6 +175,9 @@ def view_concept(concept):
 def view_report(concept):
 
     if ont.management.active() is None:
+        return redirect("/ontology/manage")
+
+    if not ont.management.can_connect():
         return redirect("/ontology/manage")
 
     report = OntologyAPI().report(concept, include_usage=True)
