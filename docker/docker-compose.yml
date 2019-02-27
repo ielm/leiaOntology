@@ -1,0 +1,47 @@
+version: '3.3'
+
+services:
+  mongod:
+    image: mongo:3.6
+    container_name: mongo
+    ports:
+      - 27017:27017
+    networks:
+      - leia
+    command:
+      - "mongod"
+    volumes:
+      - mongodbdata:/data/db
+
+  ontology:
+    image: ontology:latest
+    container_name: ontology
+    ports:
+      - 5003:5003
+    networks:
+      - leia
+    command:
+      - "python"
+      - "-m"
+      - "ont.service"
+      - "host=0.0.0.0"
+    environment:
+      - ARCHIVE_PATH=/app/archives
+      - ONTOLOGY_ACTIVE=canonical-v.1.0.0
+      - MONGO_HOST=mongo
+      - MONGO_PORT=27017
+      - AWS_ACCESS_KEY_ID=[your-aws-key-id-here]
+      - AWS_SECRET_ACCESS_KEY=[your-aws-secret-access-key-here]
+      - ONTOLOGY_BROWSE_ONLY=False
+    volumes:
+      - ontology-archives:/app/archives
+    depends_on:
+      - mongod
+
+volumes:
+  ontology-archives:
+  mongodbdata:
+
+networks:
+  leia:
+    driver: bridge
