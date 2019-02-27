@@ -1,3 +1,6 @@
+# Run from project root:
+# docker-compose -p leia -f docker/docker-compose.yml up
+
 version: '3.3'
 
 services:
