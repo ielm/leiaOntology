@@ -13,20 +13,28 @@
             <a class="nav-link" href="/ontology/manage">Manage</a>
         </li>
     </ul>
-    {% if editing_enabled %}
-        <ul class="navbar-nav ml-auto">
+    <ul class="navbar-nav ml-auto">
+        <li id="active-ontology" class="nav-item">
+            {{ env.active_ontology }}
+        </li>
+        {% if env.editing_enabled %}
             <li id="toggle-edit-button" class="nav-item">
-                {% if editing %}
+                {% if env.editing %}
                     <i class="fas fa-unlock fa-2x"></i>
                 {% else %}
                     <i class="fas fa-lock fa-2x"></i>
                 {% endif %}
             </li>
-        </ul>
-    {% endif %}
+        {% endif %}
+    </ul>
 </nav>
 
 <style>
+    #active-ontology {
+        color: white;
+        margin-right: 10px;
+        margin-top: 5px;
+    }
     #toggle-edit-button > .fas {
         color: rgba(255,255,255,.5);
         cursor: pointer;

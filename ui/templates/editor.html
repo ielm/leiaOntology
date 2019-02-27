@@ -391,7 +391,7 @@
                         </div>
                         <input id="search-input" type="text" class="form-control" placeholder="" aria-label="Find a concept by name" aria-describedby="search-button">
 
-                        {% if editing %}
+                        {% if env.editing %}
                             <div class="input-group-append">
                                 <button class="btn btn-success" type="button" id="new-concept-button" data-toggle="modal" data-target="#addConceptModal">New</button>
                             </div>
@@ -421,7 +421,7 @@
                 <div class="card-body">
                     {% for parent in payload.isa %}
                         <div>
-                            {% if editing %}
+                            {% if env.editing %}
                                 <button type="button" class="btn btn-danger remove-parent-button inline-edit-button" data-parent="{{ parent }}"><i class="fas fa-trash"></i></button>
                                 <a href="/ontology/view/{{ parent }}" style="margin-left: 4px;">{{ parent }}</a>
                             {% else %}
@@ -429,7 +429,7 @@
                             {% endif %}
                         </div>
                     {% endfor %}
-                    {% if editing %}
+                    {% if env.editing %}
                         <div id="add-parent" style="margin-top: 5px;">
                             <form class="form-inline">
                                 <button id="add-parent-button" type="button" class="btn btn-success inline-edit-button mb-2"><i class="far fa-plus-square"></i></button>
@@ -467,7 +467,7 @@
                 <div class="card-header">
                     <a id="report-button" class="btn btn-sm btn-info inline-edit-button mb-1" role="button" href="/ontology/view/report/{{ payload.name }}"><i class="fas fa-chart-pie"></i></a>
 
-                    {% if editing %}
+                    {% if env.editing %}
                         <button id="remove-concept-button" class="btn btn-sm btn-danger inline-edit-button mb-1" type="button" data-toggle="modal" data-target="#removeConceptModal"><i class="fas fa-trash"></i></button>
                     {% endif %}
 
@@ -480,7 +480,7 @@
                 <div class="card-body">
                     <div style="margin-bottom: 10px;">
                         <div id="definition-readonly">
-                            {% if editing %}
+                            {% if env.editing %}
                                 <button id="definition-readwrite-button" type="button" class="btn btn-primary inline-edit-button" style="margin-right: 8px;"><i class="far fa-edit"></i></button>
                             {% endif %}
                             <span class="definition">"{{ payload.metadata.definition }}"</span>
@@ -492,7 +492,7 @@
                             </div>
                             <input id="definition-readwrite-input" type="text" class="form-control form-control-sm" placeholder="{{ payload.metadata.definition }}" value="{{ payload.metadata.definition }}">
                         </div>
-                        {% if editing %}
+                        {% if env.editing %}
                             <div id="insert-property" style="margin-top: 5px;">
                                 <form class="form-inline">
                                 <button id="insert-property-button" disabled type="button" class="btn btn-success inline-edit-button mb-2"><i class="far fa-plus-square"></i></button>
@@ -513,7 +513,7 @@
                                 <td>
                                     {% for filler in slotfacet["fillers"] %}
                                         <div>
-                                            {% if editing %}
+                                            {% if env.editing %}
                                                 {% if filler["blocked"] %}
                                                     <button type="button" class="btn btn-success unblock-property-button inline-edit-button" data-slot="{{ slotfacet.slot }}" data-facet="{{ slotfacet.facet }}" data-filler="{{ filler.filler }}"><i class="fas fa-ban"></i></button>
                                                 {% elif filler["from"] is none %}

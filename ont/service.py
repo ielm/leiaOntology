@@ -5,6 +5,7 @@ from itertools import groupby
 from ont.api import OntologyAPI
 
 import json
+import ont.management
 import os
 
 
@@ -15,6 +16,22 @@ socketio = SocketIO(app)
 app.secret_key = "leia-ontology-service"
 
 EDITING_ENABLED = os.environ["EDITING_ENABLED"].lower() == "true" if "EDITING_ENABLED" in os.environ else True
+
+
+def env_payload():
+    if "recent_reports" not in session:
+        session["recent_reports"] = list()
+
+    if "editing" not in session:
+        session["editing"] = False
+
+    return {
+        "editing_enabled": EDITING_ENABLED,
+        "active_ontology": ont.management.active(),
+        "editing": session["editing"] and EDITING_ENABLED,
+        "recent_reports": session["recent-reports"],
+    }
+
 
 ### /ontology/api - routes for query, returning JSON formatted results
 
@@ -76,6 +93,10 @@ def view():
 
 @app.route("/ontology/view/<concept>", methods=["GET"])
 def view_concept(concept):
+
+    if ont.management.active() is None:
+        return redirect("/ontology/manage")
+
     if "recent" not in session:
         session["recent"] = list()
 
@@ -142,11 +163,15 @@ def view_concept(concept):
         payload["error-not-found"] = session["not-found"]
         session.pop("not-found")
 
-    return render_template("editor.html", payload=payload, editing=session["editing"] and EDITING_ENABLED, editing_enabled=EDITING_ENABLED)
+    return render_template("editor.html", payload=payload, env=env_payload())
 
 
 @app.route("/ontology/view/report/<concept>", methods=["GET"])
 def view_report(concept):
+
+    if ont.management.active() is None:
+        return redirect("/ontology/manage")
+
     report = OntologyAPI().report(concept, include_usage=True)
     report["name"] = concept
     report["usage"]["inverses"] = sorted(report["usage"]["inverses"], key=lambda k: (k["concept"].lower(), k["slot"], k["facet"]))
@@ -162,7 +187,7 @@ def view_report(concept):
     if "editing" not in session:
         session["editing"] = False
 
-    return render_template("report.html", report=report, recent=session["recent-reports"], editing=session["editing"] and EDITING_ENABLED, editing_enabled=EDITING_ENABLED)
+    return render_template("report.html", report=report, env=env_payload())
 
 
 @app.route("/ontology/view/toggle/editing")
@@ -351,7 +376,7 @@ def manage():
         "error": error
     }
 
-    return render_template("manager.html", payload=payload, editing_enabled=EDITING_ENABLED)
+    return render_template("manager.html", payload=payload, env=env_payload())
 
 
 @app.route("/ontology/manage/activate", methods=["POST"])

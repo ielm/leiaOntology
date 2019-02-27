@@ -117,11 +117,11 @@
                         <input id="search-input" type="text" class="form-control" placeholder="" aria-label="Find a concept by name" aria-describedby="search-button">
                     </div>
 
-                    {% if recent|length > 0 %}
+                    {% if env.recent_reports|length > 0 %}
                         <div class="recent">
                             Recent:
                             {% set comma = joiner(" • ") %}
-                            {% for r in recent %}
+                            {% for r in env.recent_reports %}
                                 {{ comma() }}
                                 <a href="/ontology/view/report/{{ r }}">{{ r }}</a>
                             {% endfor %}
@@ -141,14 +141,14 @@
                     <table class="table table-sm table-striped table-borderless">
                         {% for subclass in report.usage.subclasses %}
                             <tr>
-                                {% if editing %}
+                                {% if env.editing %}
                                     <td><button type="button" class="btn btn-danger remove-child-button inline-edit-button" data-parent="{{ report.name }}" data-child="{{ subclass }}"><i class="fas fa-trash"></i></button></td>
                                 {% endif %}
                                 <td><a href="/ontology/view/{{ subclass }}">{{ subclass }}</a></td>
                             </tr>
                         {% endfor %}
                     </table>
-                    {% if editing %}
+                    {% if env.editing %}
                         <em>*Removing a subclass breaks the IS-A connection, but does not remove the concept itself.</em>
                     {% endif %}
                 </div>
@@ -165,7 +165,7 @@
                     <table class="table table-sm table-striped table-borderless">
                         {% for inverse in report.usage.inverses %}
                             <tr>
-                                {% if editing %}
+                                {% if env.editing %}
                                     <td><button type="button" class="btn btn-danger remove-property-button inline-edit-button" data-concept="{{ inverse.concept }}" data-slot="{{ inverse.slot }}" data-facet="{{ inverse.facet }}" data-filler="{{ inverse.filler }}"><i class="fas fa-trash"></i></button></td>
                                 {% endif %}
                                 <td><a href="/ontology/view/{{ inverse.concept }}">{{ inverse.concept }}</a></td>
