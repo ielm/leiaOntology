@@ -12,7 +12,7 @@ class Ontology():
 
         self.port = port
         if self.port is None:
-            self.port = int(os.environ["ONTOLOGY_PORT"]) if "ONTOLOGY_PORT" in os.environ else 8080
+            self.port = int(os.environ["ONTOLOGY_PORT"]) if "ONTOLOGY_PORT" in os.environ else 5003
 
         self.cookie = cookie
 

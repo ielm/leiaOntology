@@ -4,3 +4,5 @@
 .DS_Store
 
 .virtualenvs/
+LEIAOntology.egg-info/
+dist/
