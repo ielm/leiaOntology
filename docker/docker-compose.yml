@@ -35,7 +35,7 @@ services:
       - MONGO_PORT=27017
       - AWS_ACCESS_KEY_ID=[your-aws-key-id-here]
       - AWS_SECRET_ACCESS_KEY=[your-aws-secret-access-key-here]
-      - ONTOLOGY_BROWSE_ONLY=False
+      - EDITING_ENABLED=True
     volumes:
       - ontology-archives:/app/archives
     depends_on:

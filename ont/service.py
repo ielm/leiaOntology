@@ -19,8 +19,8 @@ EDITING_ENABLED = os.environ["EDITING_ENABLED"].lower() == "true" if "EDITING_EN
 
 
 def env_payload():
-    if "recent_reports" not in session:
-        session["recent_reports"] = list()
+    if "recent-reports" not in session:
+        session["recent-reports"] = list()
 
     if "editing" not in session:
         session["editing"] = False
@@ -29,7 +29,7 @@ def env_payload():
         "editing_enabled": EDITING_ENABLED,
         "active_ontology": ont.management.active(),
         "editing": session["editing"] and EDITING_ENABLED,
-        "recent_reports": session["recent-reports"],
+        "recent-reports": session["recent-reports"],
     }
 
 
