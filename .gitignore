@@ -6,3 +6,4 @@
 .virtualenvs/
 LEIAOntology.egg-info/
 dist/
+build/

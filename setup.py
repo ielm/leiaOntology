@@ -19,6 +19,6 @@ setup(
     keywords="ontology",
     project_urls={
         "Documentation": "https://app.nuclino.com/LEIA/Knowledge/",
-        "Source Code": "https://bitbucket.org/jesseenglish/leiaontology/src/master/",
+        "Source Code": "https://bitbucket.org/leia-rpi/leiaontology/src/master/",
     }
 )
