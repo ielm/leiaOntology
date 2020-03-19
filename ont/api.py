@@ -232,7 +232,7 @@ class OntologyAPI(object):
 
         return result
 
-    def report(self, concept: str, include_usage: bool=False):
+    def report(self, concept: str, include_usage: bool=False, usage_with_inheritance: bool=False):
         report = {}
 
         if include_usage:
@@ -244,17 +244,63 @@ class OntologyAPI(object):
             ]
             report["usage"]["subclasses"] = list(map(lambda o: o["name"], self.collection.aggregate(pipeline)))
 
-            pipeline = [
-                {"$match": {"localProperties.filler": concept}},
-                {"$unwind": "$localProperties"},
-                {"$match": {"localProperties.filler": concept}},
-                {"$project": {"name": 1, "_id": 0, "localProperties": 1}}
+
+            pipeline: List[dict] = [
+                {"$match": {"name": concept}},
             ]
+
+            if not usage_with_inheritance:
+                pipeline.append({"$addFields": {"ancestry": [concept]}})
+            else:
+                pipeline.extend([
+                    {
+                        "$graphLookup": {
+                            "from": ont.management.active(),
+                            "startWith": "$parents",
+                            "connectFromField": "parents",
+                            "connectToField": "name",
+                            "as": "ancestors"
+                        }
+                    },
+                    {"$addFields": {"ancestry": {"$setUnion": ["$ancestors.name", [concept]]}}}
+                ])
+
+            pipeline.extend([
+                {"$lookup": {
+                    "from": ont.management.active(),
+                    "localField": "ancestry",
+                    "foreignField": "localProperties.filler",
+                    "as": "usages"
+                }
+                },
+                {"$unwind": "$usages"},
+                {"$project":
+                    {
+                        "ancestry": 1,
+                        "name": "$usages.name",
+                        "localProperties": "$usages.localProperties"
+                    }
+                },
+                {"$unwind": "$ancestry"},
+                {"$unwind": "$localProperties"},
+                {"$project":
+                    {
+                        "ancestry": 1,
+                        "name": 1,
+                        "slot": "$localProperties.slot",
+                        "facet": "$localProperties.facet",
+                        "filler": "$localProperties.filler",
+                    }
+                },
+                {"$match": {"$expr": {"$eq": ["$filler", "$ancestry"]}}},
+                {"$project": {"ancestry": 0, "_id": 0}}
+            ])
+
             report["usage"]["inverses"] = list(map(lambda o: {
                 "concept": o["name"],
-                "slot": o["localProperties"]["slot"],
-                "facet": o["localProperties"]["facet"],
-                "filler": o["localProperties"]["filler"],
+                "slot": o["slot"],
+                "facet": o["facet"],
+                "filler": o["filler"],
             }, self.collection.aggregate(pipeline)))
 
         return report

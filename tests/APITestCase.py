@@ -615,6 +615,25 @@ class APIReportTestCase(unittest.TestCase):
             "filler": "concept"
         }, report["usage"]["inverses"])
 
+    def test_report_with_inherited_usage(self):
+        concept = mock_concept("concept")
+        child = mock_concept("child", parents=["concept"])
+        user = mock_concept("user", localProperties=[{
+            "slot": "slot1",
+            "facet": "sem",
+            "filler": "concept"
+        }])
+
+        report = OntologyAPI().report("child", include_usage=True, usage_with_inheritance=True)
+
+        self.assertEqual(1, len(report["usage"]["inverses"]))
+        self.assertIn({
+            "concept": "user",
+            "slot": "slot1",
+            "facet": "sem",
+            "filler": "concept"
+        }, report["usage"]["inverses"])
+
 
 class APIUpdateDefinitionTestCase(unittest.TestCase):
 

@@ -180,7 +180,12 @@ def view_report(concept):
     if not ont.management.can_connect():
         return redirect("/ontology/manage")
 
-    report = OntologyAPI().report(concept, include_usage=True)
+    usage_with_inheritance = False
+    try:
+        usage_with_inheritance = request.args.get("inh").lower() == "true"
+    except: pass
+
+    report = OntologyAPI().report(concept, include_usage=True, usage_with_inheritance=usage_with_inheritance)
     report["name"] = concept
     report["usage"]["inverses"] = sorted(report["usage"]["inverses"], key=lambda k: (k["concept"].lower(), k["slot"], k["facet"]))
 
@@ -195,7 +200,7 @@ def view_report(concept):
     if "editing" not in session:
         session["editing"] = False
 
-    return render_template("report.html", report=report, env=env_payload())
+    return render_template("report.html", report=report, env=env_payload(), inh=usage_with_inheritance)
 
 
 @app.route("/ontology/view/toggle/editing")
