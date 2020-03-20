@@ -46,6 +46,13 @@
                 modal.find('#ontology-new-name').val(ontology);
             });
 
+            jQuery('#compileModal').on('show.bs.modal', function (event) {
+                var button = jQuery(event.relatedTarget);
+                var ontology = button.data('ontology');
+                var modal = jQuery(this);
+                modal.find('#ontology-name').val(ontology);
+            });
+
             jQuery('#deleteModal').on('show.bs.modal', function (event) {
                 var button = jQuery(event.relatedTarget);
                 var ontology = button.data('ontology');
@@ -111,11 +118,14 @@
                             <th scope="col">Copy <span class="help-badge badge badge-pill badge-info" data-toggle="tooltip" data-placement="right" title="Make a copy of the selected ontology.  You will be prompted to enter a new name.  The copy will be installed immediately.">?</span></th>
                             <th scope="col">Rename <span class="help-badge badge badge-pill badge-info" data-toggle="tooltip" data-placement="right" title="Rename an installed ontology.">?</span></th>
                             <th scope="col">Archive <span class="help-badge badge badge-pill badge-info" data-toggle="tooltip" data-placement="right" title="Export the selected ontology to a local archive file.  You will be prompted to enter a new name.">?</span></th>
+                            <th scope="col">Compile <span class="help-badge badge badge-pill badge-info" data-toggle="tooltip" data-placement="right" title="Compile the ontology for use in the analyzer as a flat file.">?</span></th>
                             <th scope="col">Delete <span class="help-badge badge badge-pill badge-info" data-toggle="tooltip" data-placement="right" title="Delete the ontology from your database.  This will not affect any local or remote copies of the ontology.">?</span></th>
                         </tr>
                     </thead>
                     <tbody>
                         {% for installed in payload["installed"] %}
+                            {% set compiled = payload["compiled"][installed] %}
+                            {% set compiling = compiled["progress"] and not compiled["progress"]["finished"] %}
                             <tr>
                                 <th scope="row">{{ installed }}</th>
                                 <td>
@@ -140,6 +150,16 @@
                                 <td>
                                     <button type="button" class="btn btn-sm btn-warning" data-toggle="modal" data-target="#archiveModal" data-ontology="{{ installed }}">
                                         Archive
+                                    </button>
+                                </td>
+                                <td>
+                                    <button {% if compiling %}disabled{% endif %} type="button" class="btn btn-sm btn-warning" data-toggle="modal" data-target="#compileModal" data-ontology="{{ installed }}">
+                                        Compile
+                                        {% if compiling %}
+                                        <div class="progress" style="height: 3px;">
+                                            <div class="progress-bar" role="progressbar" style="width: {{ compiled['progress']['status']['percent'] }}%" aria-valuenow="{{ compiled['progress']['status']['percent'] }}" aria-valuemin="0" aria-valuemax="100"></div>
+                                        </div>
+                                        {% endif %}
                                     </button>
                                 </td>
                                 <td>
@@ -328,6 +348,45 @@
                 <div class="modal-footer">
                     <button type="button" class="btn btn-secondary" data-dismiss="modal">Cancel</button>
                     <button type="submit" class="btn btn-primary" form="archiveForm">Archive</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="modal fade" id="compileModal" tabindex="-1" role="dialog" aria-labelledby="compileModal" aria-hidden="true">
+        <div class="modal-dialog" role="document">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title" id="compileModalTitle">Compile Ontology</h5>
+                    <button type="button" class="close" data-dismiss="modal" aria-label="Close">
+                        <span aria-hidden="true">&times;</span>
+                    </button>
+                </div>
+                <div class="modal-body">
+                    <form id="compileForm" action="manage/compile" method="post">
+                        <div class="form-group">
+                            <label for="ontology-name" class="col-form-label">Ontology to Compile:</label>
+                            <input type="text" class="form-control" id="ontology-name" name="ontology" value="" readonly>
+                        </div>
+                        <div class="form-group form-check">
+                            <input type="checkbox" class="form-check-input" id="include-inh" name="inh" value="">
+                            <label class="form-check-label" for="include-inh">Include Inherited Values?</label>
+                        </div>
+                        <div class="form-group form-check">
+                            <input type="checkbox" class="form-check-input" id="include-inv" name="inv" value="">
+                            <label class="form-check-label" for="include-inv">Include Inverse Values?</label>
+                        </div>
+                    </form>
+                    <div class="alert alert-warning" role="alert">
+                        <strong>Warning</strong>:
+                        Compile time may take a while depending on selected options.
+                        Compiling will overwrite previously compiled forms of the selected ontology.
+                        Export will be available when compiling process is complete.
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-dismiss="modal">Cancel</button>
+                    <button type="submit" class="btn btn-primary" form="compileForm">Compile</button>
                 </div>
             </div>
         </div>

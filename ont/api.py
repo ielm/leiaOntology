@@ -5,8 +5,11 @@ import ont.management
 
 class OntologyAPI(object):
 
-    def __init__(self):
-        self.collection = ont.management.handle()
+    def __init__(self, collection=None):
+        if collection is None:
+            self.collection = ont.management.handle()
+        else:
+            self.collection = collection
         self._cache = {}
 
     def list(self) -> List[str]:
@@ -40,7 +43,7 @@ class OntologyAPI(object):
         if immediate:
             pipeline.append({
                 "$graphLookup": {
-                    "from": ont.management.active(),
+                    "from": self.collection.name,
                     "startWith": "$parents",
                     "connectFromField": "parents",
                     "connectToField": "name",
@@ -51,7 +54,7 @@ class OntologyAPI(object):
         else:
             pipeline.append({
                 "$graphLookup": {
-                    "from": ont.management.active(),
+                    "from": self.collection.name,
                     "startWith": "$parents",
                     "connectFromField": "parents",
                     "connectToField": "name",
@@ -102,7 +105,7 @@ class OntologyAPI(object):
         if immediate:
             pipeline.append({
                 "$graphLookup": {
-                    "from": ont.management.active(),
+                    "from": self.collection.name,
                     "startWith": "$name",
                     "connectFromField": "name",
                     "connectToField": "parents",
@@ -113,7 +116,7 @@ class OntologyAPI(object):
         else:
             pipeline.append({
                 "$graphLookup": {
-                    "from": ont.management.active(),
+                    "from": self.collection.name,
                     "startWith": "$name",
                     "connectFromField": "name",
                     "connectToField": "parents",
@@ -162,7 +165,7 @@ class OntologyAPI(object):
             {"$match": {"name": concept}},
             {
                 "$graphLookup": {
-                    "from": ont.management.active(),
+                    "from": self.collection.name,
                     "startWith": "$parents",
                     "connectFromField": "name",
                     "connectToField": "parents",
@@ -203,7 +206,7 @@ class OntologyAPI(object):
                 }
             }, {
                 "$graphLookup": {
-                    "from": ont.management.active(),
+                    "from": self.collection.name,
                     "startWith": "$name",
                     "connectFromField": "name",
                     "connectToField": "parents",
@@ -250,7 +253,7 @@ class OntologyAPI(object):
                 }
             }, {
                 "$graphLookup": {
-                    "from": ont.management.active(),
+                    "from": self.collection.name,
                     "startWith": "$name",
                     "connectFromField": "name",
                     "connectToField": "parents",
@@ -318,7 +321,7 @@ class OntologyAPI(object):
                 pipeline.extend([
                     {
                         "$graphLookup": {
-                            "from": ont.management.active(),
+                            "from": self.collection.name,
                             "startWith": "$parents",
                             "connectFromField": "parents",
                             "connectToField": "name",
@@ -330,7 +333,7 @@ class OntologyAPI(object):
 
             pipeline.extend([
                 {"$lookup": {
-                    "from": ont.management.active(),
+                    "from": self.collection.name,
                     "localField": "ancestry",
                     "foreignField": "localProperties.filler",
                     "as": "usages"

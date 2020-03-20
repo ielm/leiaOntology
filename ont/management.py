@@ -40,7 +40,7 @@ def can_connect():
 def list_collections():
     client = getclient()
     db = client[DATABASE]
-    return sorted(db.list_collection_names())
+    return sorted(filter(lambda c: not c.startswith("compiled_"), db.list_collection_names()))
 
 
 def rename_collection(original_name, new_name):
@@ -149,10 +149,31 @@ def delete_local_archive(name):
     path = path + "/" + name + ".gz"
     os.remove(path)
 
-def compile(inh: bool=False, inv: bool=False):
+def compile_progress():
+    results = {}
+
+    for c in list_collections():
+        client = getclient()
+        db = client[DATABASE]
+        compiled = db["compiled_" + c]
+
+        progress = compiled.find_one({"_id": "PROGRESS"})
+        if progress is not None:
+            progress["status"]["percent"] = int(100.0 * (float(progress["status"]["count"]) / float(progress["status"]["total"])))
+
+        results[c] = {
+            "collection": c,
+            "compiled_collection": compiled.name,
+            "progress": progress
+        }
+
+    print(results)
+    return results
+
+def compile(collection: str, inh: bool=False, inv: bool=False):
     client = getclient()
     db = client[DATABASE]
-    compiled = db["compiled_" + active()]
+    compiled = db["compiled_" + collection]
 
     # Check to see if a compile operation is in progress
     progress = compiled.find_one({"_id": "PROGRESS"})
@@ -165,7 +186,7 @@ def compile(inh: bool=False, inv: bool=False):
 
     import time
     from ont.api import OntologyAPI
-    api = OntologyAPI()
+    api = OntologyAPI(collection=db[collection])
 
     # List all of the concepts
     concepts = api.list()[0:100]

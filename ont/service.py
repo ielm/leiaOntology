@@ -383,7 +383,7 @@ def manage():
     message = request.args["message"] if "message" in request.args else None
     error = request.args["error"] if "error" in request.args else None
 
-    from ont.management import active, list_collections, list_local_archives, list_remote_archives, ARCHIVE_PATH
+    from ont.management import active, compile_progress, list_collections, list_local_archives, list_remote_archives, ARCHIVE_PATH
     payload = {
         "active": active(),
         "installed": list_collections(),
@@ -391,7 +391,8 @@ def manage():
         "remote": list(list_remote_archives()),
         "local-volume": ARCHIVE_PATH,
         "message": message,
-        "error": error
+        "error": error,
+        "compiled": compile_progress()
     }
 
     return render_template("manager.html", payload=payload, env=env_payload())
@@ -475,6 +476,20 @@ def manage_archive():
     message = "Archived " + ontology + " to " + filename + "."
     return redirect("/ontology/manage?message=" + message)
 
+
+@app.route("/ontology/manage/compile", methods=["POST"])
+def manage_compile():
+    ontology = request.form["ontology"]
+    inh = "inh" in request.form
+    inv = "inv" in request.form
+
+    from threading import Thread
+
+    t = Thread(target=ont.management.compile, args=(ontology,), kwargs={"inh": inh, "inv": inv})
+    t.start()
+
+    message = "Compile started on " + ontology + "."
+    return redirect("/ontology/manage?message=" + message)
 
 @app.route("/ontology/manage/delete", methods=["POST"])
 def manage_delete():
