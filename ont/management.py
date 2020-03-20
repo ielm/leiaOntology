@@ -148,3 +148,79 @@ def delete_local_archive(name):
 
     path = path + "/" + name + ".gz"
     os.remove(path)
+
+def compile(inh: bool=False, inv: bool=False):
+    client = getclient()
+    db = client[DATABASE]
+    compiled = db["compiled_" + active()]
+
+    # Check to see if a compile operation is in progress
+    progress = compiled.find_one({"_id": "PROGRESS"})
+    if progress is not None:
+        if progress["finished"] is None:
+            raise PermissionError
+
+    # Reset the compiled database
+    compiled.drop()
+
+    import time
+    from ont.api import OntologyAPI
+    api = OntologyAPI()
+
+    # List all of the concepts
+    concepts = api.list()[0:100]
+
+    # Prime the PROGRESS document
+    compiled.insert_one({
+        "_id": "PROGRESS",
+        "status": {
+            "count": 0,
+            "total": len(concepts),
+            "last": None
+        },
+        "started": time.time(),
+        "finished": None
+    })
+
+    count = 0
+
+    # Calculate the relations and inverses
+    relations = api.relations_to_inverses()
+
+    # Compile each concept
+    local = not inh
+    for c in concepts:
+        frame = api.get(c, local=local)[0]
+
+        if inv:
+            usages = api.report(c, include_usage=inv, usage_with_inheritance=inh)
+
+            for inv in usages["usage"]["inverses"]:
+                try:
+                    slot = relations[inv["slot"]]
+                except:
+                    slot = inv["slot"]
+                facet = inv["facet"]
+                filler = inv["concept"]
+
+                if slot not in frame[c]:
+                    frame[c][slot] = {}
+                if facet not in frame[c][slot]:
+                    frame[c][slot][facet] = []
+                frame[c][slot][facet].append(filler)
+
+        frame = frame[c]
+        frame["_id"] = c
+
+        count += 1
+        compiled.insert_one(frame)
+        compiled.update_one(
+            {"_id": "PROGRESS"},
+            {"$set": {"status.count": count, "status.last": c}}
+        )
+
+    # Mark the task as finished
+    compiled.update_one(
+        {"_id": "PROGRESS"},
+        {"$set": {"finished": time.time()}}
+    )

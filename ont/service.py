@@ -41,8 +41,13 @@ def api_get():
     if "concept" not in request.args:
         abort(400)
 
+    local = False
+    try:
+        local = request.args.get("local").lower() == "true"
+    except: pass
+
     concepts = request.args.getlist("concept")
-    return json.dumps(OntologyAPI().get(concepts))
+    return json.dumps(OntologyAPI().get(concepts, local=local))
 
 
 @app.route("/ontology/api/ancestors", methods=["GET"])
