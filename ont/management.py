@@ -297,7 +297,30 @@ def export(collection: str, format: str):
 
     # Define how to export as lisp
     def export_as_lisp(cc):
-        raise NotImplementedError
+        # Collect the concepts into a list
+
+        def map_concept(concept: str, slots: dict):
+            slots.pop("_id")
+            slots = list(slots.items())
+            return "(%s %s)" % (concept, " ".join(list(map(lambda s: map_slot(*s), slots))))
+
+        def map_slot(slot: str, facets: dict):
+            facets = list(facets.items())
+            return "(%s %s)" % (slot, " ".join(list(map(lambda f: map_facet(*f), facets))))
+
+        def map_facet(facet: str, fillers):
+            return "(%s %s)" % (facet, " ".join(fillers))
+
+        ontology = list(map(lambda c: map_concept(c["_id"], c), cc))
+
+        filename = path + "/" + "compiled_" + collection + ".lisp"
+        out = open(filename, "w")
+        for line in ontology:
+            out.write(line)
+            out.write("\n")
+        out.close()
+
+        return filename
 
     if format == "python":
         return export_as_python(concepts)
