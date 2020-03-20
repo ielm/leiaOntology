@@ -491,6 +491,16 @@ def manage_compile():
     message = "Compile started on " + ontology + "."
     return redirect("/ontology/manage?message=" + message)
 
+@app.route("/ontology/manage/export", methods=["POST"])
+def manage_export():
+    ontology = request.form["ontology"]
+    format = request.form["format"]
+
+    file = ont.management.export(ontology, format)
+
+    from flask import send_file
+    return send_file(file, as_attachment=True)
+
 @app.route("/ontology/manage/delete", methods=["POST"])
 def manage_delete():
 

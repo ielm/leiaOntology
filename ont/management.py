@@ -6,6 +6,7 @@ import os
 import subprocess
 
 ARCHIVE_PATH = "ARCHIVE_PATH"
+EXPORT_PATH = "EXPORT_PATH"
 ONTOLOGY_ACTIVE = "ONTOLOGY_ACTIVE"
 
 MONGO_HOST = os.environ["MONGO_HOST"] if "MONGO_HOST" in os.environ else "localhost"
@@ -167,7 +168,6 @@ def compile_progress():
             "progress": progress
         }
 
-    print(results)
     return results
 
 def compile(collection: str, inh: bool=False, inv: bool=False):
@@ -189,7 +189,7 @@ def compile(collection: str, inh: bool=False, inv: bool=False):
     api = OntologyAPI(collection=db[collection])
 
     # List all of the concepts
-    concepts = api.list()[0:100]
+    concepts = set(api.list()[0:100])
 
     # Prime the PROGRESS document
     compiled.insert_one({
@@ -230,8 +230,17 @@ def compile(collection: str, inh: bool=False, inv: bool=False):
                     frame[c][slot][facet] = []
                 frame[c][slot][facet].append(filler)
 
+        # Convert frame names, slots, facets, and relation fillers to upper case
         frame = frame[c]
-        frame["_id"] = c
+        for slot_name in frame.keys():
+            slot = frame.pop(slot_name)
+            frame[slot_name.upper()] = slot
+
+            for facet_name in slot.keys():
+                facet = slot.pop(facet_name)
+                slot[facet_name.upper()] = list(map(lambda filler: filler.upper() if filler in concepts else filler, facet))
+
+        frame["_id"] = c.upper()
 
         count += 1
         compiled.insert_one(frame)
@@ -245,3 +254,54 @@ def compile(collection: str, inh: bool=False, inv: bool=False):
         {"_id": "PROGRESS"},
         {"$set": {"finished": time.time()}}
     )
+
+def export(collection: str, format: str):
+    path = os.environ[EXPORT_PATH] if EXPORT_PATH in os.environ else None
+
+    if path is None:
+        raise Exception("Unknown EXPORT_PATH variable.")
+
+    # Connect to compiled collection
+    client = getclient()
+    db = client[DATABASE]
+    compiled = db["compiled_" + collection]
+
+    # Check to see if a compile is complete
+    progress = compiled.find_one({"_id": "PROGRESS"})
+    if progress is None:
+        raise PermissionError
+    if progress is not None:
+        if progress["finished"] is None:
+            raise PermissionError
+
+    # Fetch all concepts
+    concepts = compiled.find({"_id": {"$ne": "PROGRESS"}})
+
+    # Define how to export as python
+    def export_as_python(cc):
+        # Collect the concepts into a dictionary
+        ontology = {}
+        for c in cc:
+            id = c.pop("_id")
+            ontology[id] = c
+
+        # Pickle
+        import pickle
+        filename = path + "/" + "compiled_" + collection + ".p"
+        f = open(filename, "wb")
+        pickle.dump(ontology, f)
+        f.close()
+
+        # Return file pointer for download
+        return filename
+
+    # Define how to export as lisp
+    def export_as_lisp(cc):
+        raise NotImplementedError
+
+    if format == "python":
+        return export_as_python(concepts)
+    if format == "lisp":
+        return export_as_lisp(concepts)
+
+    raise Exception

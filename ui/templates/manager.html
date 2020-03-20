@@ -53,6 +53,18 @@
                 modal.find('#ontology-name').val(ontology);
             });
 
+            jQuery('#exportModal').on('show.bs.modal', function (event) {
+                var button = jQuery(event.relatedTarget);
+                var ontology = button.data('ontology');
+                var compiled_on = button.data('compiled-on');
+                var date = new Date(0);
+                date.setSeconds(compiled_on);
+
+                var modal = jQuery(this);
+                modal.find('#ontology-name').val(ontology);
+                modal.find('#ontology-compiled-on').val(date.toISOString());
+            });
+
             jQuery('#deleteModal').on('show.bs.modal', function (event) {
                 var button = jQuery(event.relatedTarget);
                 var ontology = button.data('ontology');
@@ -118,7 +130,8 @@
                             <th scope="col">Copy <span class="help-badge badge badge-pill badge-info" data-toggle="tooltip" data-placement="right" title="Make a copy of the selected ontology.  You will be prompted to enter a new name.  The copy will be installed immediately.">?</span></th>
                             <th scope="col">Rename <span class="help-badge badge badge-pill badge-info" data-toggle="tooltip" data-placement="right" title="Rename an installed ontology.">?</span></th>
                             <th scope="col">Archive <span class="help-badge badge badge-pill badge-info" data-toggle="tooltip" data-placement="right" title="Export the selected ontology to a local archive file.  You will be prompted to enter a new name.">?</span></th>
-                            <th scope="col">Compile <span class="help-badge badge badge-pill badge-info" data-toggle="tooltip" data-placement="right" title="Compile the ontology for use in the analyzer as a flat file.">?</span></th>
+                            <th scope="col">Compile <span class="help-badge badge badge-pill badge-info" data-toggle="tooltip" data-placement="right" title="Compile the ontology for use in the analyzer.">?</span></th>
+                            <th scope="col">Export <span class="help-badge badge badge-pill badge-info" data-toggle="tooltip" data-placement="right" title="Export the compiled ontology to a flat file.">?</span></th>
                             <th scope="col">Delete <span class="help-badge badge badge-pill badge-info" data-toggle="tooltip" data-placement="right" title="Delete the ontology from your database.  This will not affect any local or remote copies of the ontology.">?</span></th>
                         </tr>
                     </thead>
@@ -126,6 +139,8 @@
                         {% for installed in payload["installed"] %}
                             {% set compiled = payload["compiled"][installed] %}
                             {% set compiling = compiled["progress"] and not compiled["progress"]["finished"] %}
+                            {% set finished = compiled["progress"] and compiled["progress"]["finished"] %}
+                            {% set finished_on = compiled["progress"]["finished"] %}
                             <tr>
                                 <th scope="row">{{ installed }}</th>
                                 <td>
@@ -160,6 +175,11 @@
                                             <div class="progress-bar" role="progressbar" style="width: {{ compiled['progress']['status']['percent'] }}%" aria-valuenow="{{ compiled['progress']['status']['percent'] }}" aria-valuemin="0" aria-valuemax="100"></div>
                                         </div>
                                         {% endif %}
+                                    </button>
+                                </td>
+                                <td>
+                                    <button {% if not finished %}disabled {% endif %} type="button" class="btn btn-sm btn-warning" data-toggle="modal" data-target="#exportModal" data-ontology="{{ installed }}" data-compiled-on="{{ finished_on }}">
+                                        Export
                                     </button>
                                 </td>
                                 <td>
@@ -387,6 +407,47 @@
                 <div class="modal-footer">
                     <button type="button" class="btn btn-secondary" data-dismiss="modal">Cancel</button>
                     <button type="submit" class="btn btn-primary" form="compileForm">Compile</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="modal fade" id="exportModal" tabindex="-1" role="dialog" aria-labelledby="exportModal" aria-hidden="true">
+        <div class="modal-dialog" role="document">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title" id="exportModalTitle">Export Ontology</h5>
+                    <button type="button" class="close" data-dismiss="modal" aria-label="Close">
+                        <span aria-hidden="true">&times;</span>
+                    </button>
+                </div>
+                <div class="modal-body">
+                    <form id="exportForm" action="manage/export" method="post">
+                        <div class="form-group">
+                            <label for="ontology-name" class="col-form-label">Ontology to Export:</label>
+                            <input type="text" class="form-control" id="ontology-name" name="ontology" value="" readonly>
+                        </div>
+                        <div class="form-group">
+                            <label for="ontology-compiled-on" class="col-form-label">Ontology compiled on:</label>
+                            <input type="text" class="form-control" id="ontology-compiled-on" name="compiled-on" value="" readonly>
+                        </div>
+                        <div class="form-group">
+                            <label for="select-format" class="col-form-label">Export as:</label>
+                            <select id="select-format" name="format" class="custom-select">
+                                <option selected value="python">Python</option>
+                                <option value="lisp">Lisp</option>
+                            </select>
+                        </div>
+                    </form>
+                    <div class="alert alert-warning" role="alert">
+                        <strong>Note</strong>:
+                        This will take the previously compiled ontology and convert it into the selected flat file
+                        format type; you will be prompted to save the file.
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-dismiss="modal">Cancel</button>
+                    <button type="submit" class="btn btn-primary" form="exportForm">Export</button>
                 </div>
             </div>
         </div>

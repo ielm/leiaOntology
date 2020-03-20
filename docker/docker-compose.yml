@@ -30,6 +30,7 @@ services:
       - "host=0.0.0.0"
     environment:
       - ARCHIVE_PATH=/app/archives
+      - EXPORT_PATH=/app/exports
       - ONTOLOGY_ACTIVE=canonical-v.1.0.0
       - MONGO_HOST=mongo
       - MONGO_PORT=27017
@@ -38,11 +39,13 @@ services:
       - EDITING_ENABLED=True
     volumes:
       - ontology-archives:/app/archives
+      - ontology-exports:/app/exports
     depends_on:
       - mongod
 
 volumes:
   ontology-archives:
+  ontology-exports:
   mongodbdata:
 
 networks:
