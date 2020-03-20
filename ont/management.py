@@ -189,7 +189,7 @@ def compile(collection: str, inh: bool=False, inv: bool=False):
     api = OntologyAPI(collection=db[collection])
 
     # List all of the concepts
-    concepts = set(api.list()[0:100])
+    concepts = set(api.list())
 
     # Prime the PROGRESS document
     compiled.insert_one({
@@ -208,14 +208,25 @@ def compile(collection: str, inh: bool=False, inv: bool=False):
     # Calculate the relations and inverses
     relations = api.relations_to_inverses()
 
+    # Calculate the full ancestry
+    ancestry = api.full_ancestry()
+
     # Compile each concept
     local = not inh
     for c in concepts:
         frame = api.get(c, local=local)[0]
 
         if inv:
+
+            def ancestors_or_default(c):
+                try:
+                    return ancestry[c]
+                except:
+                    return set()
+
             usages = api.report(c, include_usage=inv, usage_with_inheritance=inh)
 
+            inv_slots = set()
             for inv in usages["usage"]["inverses"]:
                 try:
                     slot = relations[inv["slot"]]
@@ -230,13 +241,31 @@ def compile(collection: str, inh: bool=False, inv: bool=False):
                     frame[c][slot][facet] = []
                 frame[c][slot][facet].append(filler)
 
+                # Note which inverses have been used in this frame
+                inv_slots.add(slot)
+
+            # For each inverse slot that was used, reduce the fillers of each facet to their common set of ancestors
+            prune = []
+            for slot in inv_slots:
+                for facet in frame[c][slot]:
+                    fillers = set(frame[c][slot][facet])
+                    for filler in fillers:
+                        # If any of the filler's ancestors are in this slot/facet, it can be pruned
+                        ancestors = ancestors_or_default(filler)
+                        if len(ancestors.intersection(fillers)) > 0:
+                            prune.append((slot, facet, filler))
+
+            # Remove the fillers marked as pruned
+            for p in prune:
+                frame[c][p[0]][p[1]].remove(p[2])
+
         # Convert frame names, slots, facets, and relation fillers to upper case
         frame = frame[c]
-        for slot_name in frame.keys():
+        for slot_name in list(frame.keys()):
             slot = frame.pop(slot_name)
             frame[slot_name.upper()] = slot
 
-            for facet_name in slot.keys():
+            for facet_name in list(slot.keys()):
                 facet = slot.pop(facet_name)
                 slot[facet_name.upper()] = list(map(lambda filler: filler.upper() if filler in concepts else filler, facet))
 
@@ -284,6 +313,12 @@ def export(collection: str, format: str):
         for c in cc:
             id = c.pop("_id")
             ontology[id] = c
+
+            for slot in c.keys():
+                for facet in c[slot].keys():
+                    fillers = c[slot][facet]
+                    if len(fillers) == 1:
+                        c[slot][facet] = fillers[0]
 
         # Pickle
         import pickle

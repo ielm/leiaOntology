@@ -244,6 +244,25 @@ class OntologyAPI(object):
 
         return result
 
+    def full_ancestry(self) -> dict:
+        pipeline = [
+            {
+                "$graphLookup": {
+                    "from": self.collection.name,
+                    "startWith": "$parents",
+                    "connectFromField": "parents",
+                    "connectToField": "name",
+                    "as": "ancestors"
+                }
+            },
+            {"$project": {"ancestry": "$ancestors.name", "name": 1}}
+        ]
+
+        ancestry = {}
+        for d in self.collection.aggregate(pipeline):
+            ancestry[d["name"]] = set(d["ancestry"])
+        return ancestry
+
     def relations_to_inverses(self) -> dict:
 
         pipeline = [
