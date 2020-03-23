@@ -17,7 +17,7 @@ services:
       - mongodbdata:/data/db
 
   ontology:
-    image: leia/ontology:1.0.0
+    image: leia/ontology:1.1.0
     container_name: ontology
     ports:
       - 5003:5003
