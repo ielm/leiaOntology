@@ -110,11 +110,11 @@ class Ontology():
 
         raise Exception("Concept " + concept + " not found.")
 
-    def get(self, concepts):
+    def get(self, concepts, local=True):
         if type(concepts) is not list:
             concepts = [concepts]
 
-        results = self.__rget("/ontology/api/get", params={"concept": concepts})
+        results = self.__rget("/ontology/api/get", params={"concept": concepts, "local": local})
         return json.loads(results)
 
     def ancestors(self, concept, immediate=False, details=False, paths=False):

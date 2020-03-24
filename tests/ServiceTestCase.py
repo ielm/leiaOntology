@@ -38,7 +38,16 @@ class APIGetServiceTestCase(unittest.TestCase):
         response = json.loads(response.data)
         self.assertTrue(OntologyAPI().format(concept1) in response)
         self.assertTrue(OntologyAPI().format(concept2) in response)
-        
+
+    def test_get_local(self):
+        grandparent = mock_concept("grandparent", localProperties=[{"slot": "test", "facet": "sem", "filler": "value1"}])
+        parent = mock_concept("parent", parents=["grandparent"], localProperties=[{"slot": "test", "facet": "sem", "filler": "value2"}])
+        child = mock_concept("child", parents=["parent"], localProperties=[{"slot": "test", "facet": "sem", "filler": "value3"}])
+
+        response = self.app.get("/ontology/api/get?concept=child&local=true")
+        response = json.loads(response.data)
+        self.assertEqual(response, OntologyAPI().get("child", local=True))
+
         
 class APIAncestorsServiceTestCase(unittest.TestCase):
 

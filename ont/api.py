@@ -5,17 +5,29 @@ import ont.management
 
 class OntologyAPI(object):
 
-    def __init__(self):
-        self.collection = ont.management.handle()
+    def __init__(self, collection=None):
+        if collection is None:
+            self.collection = ont.management.handle()
+        else:
+            self.collection = collection
         self._cache = {}
 
-    def get(self, concepts: Union[str, List[str]], metadata: bool=False) -> List[dict]:
+    def list(self) -> List[str]:
+        pipeline = [
+            {"$project": {"name": 1, "_id": 0}},
+            {"$group": {"_id": None, "all": {"$addToSet": "$name"}}}
+        ]
+        results = list(self.collection.aggregate(pipeline))
+
+        return sorted(results[0]["all"])
+
+    def get(self, concepts: Union[str, List[str]], local: bool=False, metadata: bool=False) -> List[dict]:
         if isinstance(concepts, str):
             concepts = [concepts]
 
         results = []
         for record in self.collection.find({"$or": list(map(lambda concept: {"name": concept}, concepts))}):
-            results.append(self.format(record, metadata=metadata))
+            results.append(self.format(record, local=local, metadata=metadata))
 
         return results
 
@@ -31,7 +43,7 @@ class OntologyAPI(object):
         if immediate:
             pipeline.append({
                 "$graphLookup": {
-                    "from": ont.management.active(),
+                    "from": self.collection.name,
                     "startWith": "$parents",
                     "connectFromField": "parents",
                     "connectToField": "name",
@@ -42,7 +54,7 @@ class OntologyAPI(object):
         else:
             pipeline.append({
                 "$graphLookup": {
-                    "from": ont.management.active(),
+                    "from": self.collection.name,
                     "startWith": "$parents",
                     "connectFromField": "parents",
                     "connectToField": "name",
@@ -93,7 +105,7 @@ class OntologyAPI(object):
         if immediate:
             pipeline.append({
                 "$graphLookup": {
-                    "from": ont.management.active(),
+                    "from": self.collection.name,
                     "startWith": "$name",
                     "connectFromField": "name",
                     "connectToField": "parents",
@@ -104,7 +116,7 @@ class OntologyAPI(object):
         else:
             pipeline.append({
                 "$graphLookup": {
-                    "from": ont.management.active(),
+                    "from": self.collection.name,
                     "startWith": "$name",
                     "connectFromField": "name",
                     "connectToField": "parents",
@@ -153,7 +165,7 @@ class OntologyAPI(object):
             {"$match": {"name": concept}},
             {
                 "$graphLookup": {
-                    "from": ont.management.active(),
+                    "from": self.collection.name,
                     "startWith": "$parents",
                     "connectFromField": "name",
                     "connectToField": "parents",
@@ -194,7 +206,7 @@ class OntologyAPI(object):
                 }
             }, {
                 "$graphLookup": {
-                    "from": ont.management.active(),
+                    "from": self.collection.name,
                     "startWith": "$name",
                     "connectFromField": "name",
                     "connectToField": "parents",
@@ -232,7 +244,80 @@ class OntologyAPI(object):
 
         return result
 
-    def report(self, concept: str, include_usage: bool=False):
+    def full_ancestry(self) -> dict:
+        pipeline = [
+            {
+                "$graphLookup": {
+                    "from": self.collection.name,
+                    "startWith": "$parents",
+                    "connectFromField": "parents",
+                    "connectToField": "name",
+                    "as": "ancestors"
+                }
+            },
+            {"$project": {"ancestry": "$ancestors.name", "name": 1}}
+        ]
+
+        ancestry = {}
+        for d in self.collection.aggregate(pipeline):
+            ancestry[d["name"]] = set(d["ancestry"])
+        return ancestry
+
+    def relations_to_inverses(self) -> dict:
+
+        pipeline = [
+            {
+                "$match": {
+                    "name": "relation"
+                }
+            }, {
+                "$graphLookup": {
+                    "from": self.collection.name,
+                    "startWith": "$name",
+                    "connectFromField": "name",
+                    "connectToField": "parents",
+                    "as": "descendants"
+                }
+            }, {
+                "$unwind": {
+                    "path": "$descendants"
+                }
+            }, {
+                "$replaceRoot": {
+                    "newRoot": "$descendants"
+                }
+            },
+
+            {
+                "$graphLookup": {
+                    "from": "canonical-v.1.0.1",
+                    "startWith": "$parents",
+                    "connectFromField": "parents",
+                    "connectToField": "name",
+                    "as": "ancestors"
+                }
+            },
+            {"$addFields": {"ancestry": {"$setUnion": ["$ancestors.name", ["$name"]]}}},
+            {"$project": {"ancestors": 0}}
+        ]
+
+        results = list(self.collection.aggregate(pipeline))
+
+        relations = {"relation": "relation"}
+        for r in results:
+            for lp in r["localProperties"]:
+                if lp["slot"] == "inverse":
+                    relations[r["name"]] = lp["filler"]
+
+        for r in results:
+            if r["name"] not in relations:
+                for ancestor in reversed(r["ancestry"]):
+                    if ancestor in relations:
+                        relations[r["name"]] = relations[ancestor]
+
+        return relations
+
+    def report(self, concept: str, include_usage: bool=False, usage_with_inheritance: bool=False):
         report = {}
 
         if include_usage:
@@ -244,17 +329,63 @@ class OntologyAPI(object):
             ]
             report["usage"]["subclasses"] = list(map(lambda o: o["name"], self.collection.aggregate(pipeline)))
 
-            pipeline = [
-                {"$match": {"localProperties.filler": concept}},
-                {"$unwind": "$localProperties"},
-                {"$match": {"localProperties.filler": concept}},
-                {"$project": {"name": 1, "_id": 0, "localProperties": 1}}
+
+            pipeline: List[dict] = [
+                {"$match": {"name": concept}},
             ]
+
+            if not usage_with_inheritance:
+                pipeline.append({"$addFields": {"ancestry": [concept]}})
+            else:
+                pipeline.extend([
+                    {
+                        "$graphLookup": {
+                            "from": self.collection.name,
+                            "startWith": "$parents",
+                            "connectFromField": "parents",
+                            "connectToField": "name",
+                            "as": "ancestors"
+                        }
+                    },
+                    {"$addFields": {"ancestry": {"$setUnion": ["$ancestors.name", [concept]]}}}
+                ])
+
+            pipeline.extend([
+                {"$lookup": {
+                    "from": self.collection.name,
+                    "localField": "ancestry",
+                    "foreignField": "localProperties.filler",
+                    "as": "usages"
+                }
+                },
+                {"$unwind": "$usages"},
+                {"$project":
+                    {
+                        "ancestry": 1,
+                        "name": "$usages.name",
+                        "localProperties": "$usages.localProperties"
+                    }
+                },
+                {"$unwind": "$ancestry"},
+                {"$unwind": "$localProperties"},
+                {"$project":
+                    {
+                        "ancestry": 1,
+                        "name": 1,
+                        "slot": "$localProperties.slot",
+                        "facet": "$localProperties.facet",
+                        "filler": "$localProperties.filler",
+                    }
+                },
+                {"$match": {"$expr": {"$eq": ["$filler", "$ancestry"]}}},
+                {"$project": {"ancestry": 0, "_id": 0}}
+            ])
+
             report["usage"]["inverses"] = list(map(lambda o: {
                 "concept": o["name"],
-                "slot": o["localProperties"]["slot"],
-                "facet": o["localProperties"]["facet"],
-                "filler": o["localProperties"]["filler"],
+                "slot": o["slot"],
+                "facet": o["facet"],
+                "filler": o["filler"],
             }, self.collection.aggregate(pipeline)))
 
         return report
@@ -352,10 +483,6 @@ class OntologyAPI(object):
         })
 
     def remove_concept(self, concept: str, include_usages: bool=False):
-        self.collection.delete_one({
-            "name": concept
-        })
-
         if include_usages:
             report = self.report(concept, include_usage=True)
             for child in report["usage"]["subclasses"]:
@@ -379,18 +506,31 @@ class OntologyAPI(object):
                     }
                 })
 
+        self.collection.delete_one({
+            "name": concept
+        })
+
     def cache(self, concepts):
         for concept in concepts:
             self._cache[concept["name"]] = concept
 
-    def format(self, concept, metadata: bool=False):
+    def format(self, concept, local: bool=False, metadata: bool=False):
         output = {
             "is-a": {"value": concept["parents"]},
             "subclasses": {"value": list(map(lambda record: record["name"], self.collection.find({"parents": concept["name"]})))}
         }
 
-        for property in self._inherit(concept, metadata=metadata):
-            self._add_property(output, property, metadata=metadata)
+        if local:
+            properties = concept["localProperties"]
+            for p in properties:
+                if metadata:
+                    p["metadata"] = {
+                        "defined_in": concept["name"]
+                    }
+                self._add_property(output, p, metadata=metadata)
+        else:
+            for property in self._inherit(concept, metadata=metadata):
+                self._add_property(output, property, metadata=metadata)
 
         if metadata:
             relations = self.relations(inverses=True)

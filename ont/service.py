@@ -41,8 +41,13 @@ def api_get():
     if "concept" not in request.args:
         abort(400)
 
+    local = False
+    try:
+        local = request.args.get("local").lower() == "true"
+    except: pass
+
     concepts = request.args.getlist("concept")
-    return json.dumps(OntologyAPI().get(concepts))
+    return json.dumps(OntologyAPI().get(concepts, local=local))
 
 
 @app.route("/ontology/api/ancestors", methods=["GET"])
@@ -180,7 +185,12 @@ def view_report(concept):
     if not ont.management.can_connect():
         return redirect("/ontology/manage")
 
-    report = OntologyAPI().report(concept, include_usage=True)
+    usage_with_inheritance = False
+    try:
+        usage_with_inheritance = request.args.get("inh").lower() == "true"
+    except: pass
+
+    report = OntologyAPI().report(concept, include_usage=True, usage_with_inheritance=usage_with_inheritance)
     report["name"] = concept
     report["usage"]["inverses"] = sorted(report["usage"]["inverses"], key=lambda k: (k["concept"].lower(), k["slot"], k["facet"]))
 
@@ -195,7 +205,7 @@ def view_report(concept):
     if "editing" not in session:
         session["editing"] = False
 
-    return render_template("report.html", report=report, env=env_payload())
+    return render_template("report.html", report=report, env=env_payload(), inh=usage_with_inheritance)
 
 
 @app.route("/ontology/view/toggle/editing")
@@ -373,7 +383,7 @@ def manage():
     message = request.args["message"] if "message" in request.args else None
     error = request.args["error"] if "error" in request.args else None
 
-    from ont.management import active, list_collections, list_local_archives, list_remote_archives, ARCHIVE_PATH
+    from ont.management import active, compile_progress, list_collections, list_local_archives, list_remote_archives, ARCHIVE_PATH
     payload = {
         "active": active(),
         "installed": list_collections(),
@@ -381,7 +391,8 @@ def manage():
         "remote": list(list_remote_archives()),
         "local-volume": ARCHIVE_PATH,
         "message": message,
-        "error": error
+        "error": error,
+        "compiled": compile_progress()
     }
 
     return render_template("manager.html", payload=payload, env=env_payload())
@@ -465,6 +476,35 @@ def manage_archive():
     message = "Archived " + ontology + " to " + filename + "."
     return redirect("/ontology/manage?message=" + message)
 
+
+@app.route("/ontology/manage/compile", methods=["POST"])
+def manage_compile():
+    ontology = request.form["ontology"]
+    compile_inherited_values = "inh" in request.form
+    compile_domains_and_ranges = "dr" in request.form
+    compile_inverses = "inv" in request.form
+
+    from threading import Thread
+
+    t = Thread(target=ont.management.compile, args=(ontology,), kwargs={
+        "compile_inherited_values": compile_inherited_values,
+        "compile_domains_and_ranges": compile_domains_and_ranges,
+        "compile_inverses": compile_inverses,
+    })
+    t.start()
+
+    message = "Compile started on " + ontology + "."
+    return redirect("/ontology/manage?message=" + message)
+
+@app.route("/ontology/manage/export", methods=["POST"])
+def manage_export():
+    ontology = request.form["ontology"]
+    format = request.form["format"]
+
+    file = ont.management.export(ontology, format)
+
+    from flask import send_file
+    return send_file(file, as_attachment=True)
 
 @app.route("/ontology/manage/delete", methods=["POST"])
 def manage_delete():

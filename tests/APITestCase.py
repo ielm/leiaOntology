@@ -208,6 +208,19 @@ class APIGetTestCase(unittest.TestCase):
         results = OntologyAPI().get("concept", metadata=True)
         self.assertEqual([OntologyAPI().format(concept, metadata=True)], results)
 
+    def test_get_local(self):
+        grandparent = mock_concept("grandparent", localProperties=[{"slot": "test", "facet": "sem", "filler": "value1"}])
+        parent = mock_concept("parent", parents=["grandparent"], localProperties=[{"slot": "test", "facet": "sem", "filler": "value2"}])
+        child = mock_concept("child", parents=["parent"], localProperties=[{"slot": "test", "facet": "sem", "filler": "value3"}])
+
+        results = OntologyAPI().get("child", local=True, metadata=True)
+        self.assertEqual(1, len(results[0]["child"]["test"]["sem"]))
+        self.assertIn({
+            "filler": "value3",
+            "defined_in": "child",
+            "blocked": False
+        }, results[0]["child"]["test"]["sem"])
+
     def test_get_metadata_specifies_original_definition_per_filler(self):
         grandparent = mock_concept("grandparent", localProperties=[{"slot": "test", "facet": "sem", "filler": "value1"}])
         parent = mock_concept("parent", parents=["grandparent"], localProperties=[{"slot": "test", "facet": "sem", "filler": "value2"}])
@@ -611,6 +624,25 @@ class APIReportTestCase(unittest.TestCase):
         self.assertIn({
             "concept": "other2",
             "slot": "slot3",
+            "facet": "sem",
+            "filler": "concept"
+        }, report["usage"]["inverses"])
+
+    def test_report_with_inherited_usage(self):
+        concept = mock_concept("concept")
+        child = mock_concept("child", parents=["concept"])
+        user = mock_concept("user", localProperties=[{
+            "slot": "slot1",
+            "facet": "sem",
+            "filler": "concept"
+        }])
+
+        report = OntologyAPI().report("child", include_usage=True, usage_with_inheritance=True)
+
+        self.assertEqual(1, len(report["usage"]["inverses"]))
+        self.assertIn({
+            "concept": "user",
+            "slot": "slot1",
             "facet": "sem",
             "filler": "concept"
         }, report["usage"]["inverses"])
