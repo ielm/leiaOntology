@@ -68,6 +68,18 @@ def delete_collection(name):
     collection.drop()
 
 
+def make_collection(name):
+    client = getclient()
+    db = client[DATABASE]
+    collection = db[name]
+
+    activate(name)
+
+    from ont.api import OntologyAPI
+    api = OntologyAPI(collection)
+    api.add_concept("all", None, "ontological root")
+
+
 def copy_collection(original_name, copied_name):
     client = getclient()
     db = client[DATABASE]

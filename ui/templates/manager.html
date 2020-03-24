@@ -112,7 +112,10 @@
         </p>
 
         <div class="card">
-            <h5 class="card-header">Installed Ontologies</h5>
+            <h5 class="card-header">
+                Installed Ontologies
+                <button type="button" class="btn btn-success float-right" data-toggle="modal" data-target="#newModal" style="padding-top: 0px; padding-bottom: 0px;">New</button>
+            </h5>
             <div class="card-body">
 
                 <p>
@@ -279,6 +282,35 @@
                         {% endfor %}
                     </tbody>
                 </table>
+            </div>
+        </div>
+    </div>
+
+    <div class="modal fade" id="newModal" tabindex="-1" role="dialog" aria-labelledby="newModal" aria-hidden="true">
+        <div class="modal-dialog" role="document">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title" id="newModalTitle">New Ontology</h5>
+                    <button type="button" class="close" data-dismiss="modal" aria-label="Close">
+                        <span aria-hidden="true">&times;</span>
+                    </button>
+                </div>
+                <div class="modal-body">
+                    <form id="newForm" action="/ontology/manage/new" method="post">
+                        <div class="form-group">
+                            <label for="ontology-new-name" class="col-form-label">Name for New Ontology:</label>
+                            <input type="text" class="form-control" id="ontology-new-name" name="ontology" value="">
+                        </div>
+                    </form>
+                    <div class="alert alert-warning" role="alert">
+                        <strong>Note</strong>:
+                        This will create an entirely new ontology with an empty ALL concept; your current ontology will become inactive, but will not be modified.
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-dismiss="modal">Cancel</button>
+                    <button type="submit" class="btn btn-primary" form="newForm">New</button>
+                </div>
             </div>
         </div>
     </div>

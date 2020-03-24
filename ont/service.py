@@ -588,6 +588,17 @@ def manage_remote_download():
     return redirect("/ontology/manage?message=" + message)
 
 
+@app.route("/ontology/manage/new", methods=["POST"])
+def manage_new():
+    ontology = request.form["ontology"]
+
+    from ont.management import make_collection
+    make_collection(ontology)
+
+    message = "Made and activated " + ontology + "."
+    return redirect("/ontology/manage?message=" + message)
+
+
 if __name__ == '__main__':
     host = "127.0.0.1"
     port = 5003
