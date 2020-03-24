@@ -469,10 +469,14 @@ class OntologyAPI(object):
             }
         })
 
-    def add_concept(self, concept: str, parent: str, definition: str):
+    def add_concept(self, concept: str, parent: Union[str, None], definition: str):
+        parents = [parent]
+        if parent is None:
+            parents = []
+
         self.collection.insert_one({
             "name": concept,
-            "parents": [parent],
+            "parents": parents,
             "definition": definition,
             "notes": "",
             "reified": False,
