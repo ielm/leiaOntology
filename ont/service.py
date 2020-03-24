@@ -480,12 +480,17 @@ def manage_archive():
 @app.route("/ontology/manage/compile", methods=["POST"])
 def manage_compile():
     ontology = request.form["ontology"]
-    inh = "inh" in request.form
-    inv = "inv" in request.form
+    compile_inherited_values = "inh" in request.form
+    compile_domains_and_ranges = "dr" in request.form
+    compile_inverses = "inv" in request.form
 
     from threading import Thread
 
-    t = Thread(target=ont.management.compile, args=(ontology,), kwargs={"inh": inh, "inv": inv})
+    t = Thread(target=ont.management.compile, args=(ontology,), kwargs={
+        "compile_inherited_values": compile_inherited_values,
+        "compile_domains_and_ranges": compile_domains_and_ranges,
+        "compile_inverses": compile_inverses,
+    })
     t.start()
 
     message = "Compile started on " + ontology + "."

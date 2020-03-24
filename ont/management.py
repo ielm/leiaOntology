@@ -1,9 +1,12 @@
 from os.path import join
 from pymongo import MongoClient
+from typing import Set, Tuple
 
 import boto3
 import os
+import pymongo.errors
 import subprocess
+import time
 
 ARCHIVE_PATH = "ARCHIVE_PATH"
 EXPORT_PATH = "EXPORT_PATH"
@@ -170,7 +173,7 @@ def compile_progress():
 
     return results
 
-def compile(collection: str, inh: bool=False, inv: bool=False):
+def compile(collection: str, compile_inherited_values: bool=False, compile_domains_and_ranges: bool=False, compile_inverses: bool=False):
     client = getclient()
     db = client[DATABASE]
     compiled = db["compiled_" + collection]
@@ -184,7 +187,7 @@ def compile(collection: str, inh: bool=False, inv: bool=False):
     # Reset the compiled database
     compiled.drop()
 
-    import time
+    # Connect to the API
     from ont.api import OntologyAPI
     api = OntologyAPI(collection=db[collection])
 
@@ -203,63 +206,90 @@ def compile(collection: str, inh: bool=False, inv: bool=False):
         "finished": None
     })
 
-    count = 0
-
     # Calculate the relations and inverses
     relations = api.relations_to_inverses()
 
-    # Calculate the full ancestry
+    # Calculate the full ancestry and define a helper method
     ancestry = api.full_ancestry()
 
-    # Compile each concept
-    local = not inh
-    for c in concepts:
-        frame = api.get(c, local=local)[0]
+    def ancestors_or_default(c):
+        try:
+            return ancestry[c]
+        except:
+            return set()
 
-        if inv:
+    # Define a helper method for reducing any set of concepts to their common set of ancestors
+    def reduce_to_common_ancestors(concepts: Set[str]) -> Set[str]:
+        to_prune = set()
 
-            def ancestors_or_default(c):
-                try:
-                    return ancestry[c]
-                except:
-                    return set()
+        for c in concepts:
+            # If any of the filler's ancestors are in the list of concepts it can be pruned
+            ancestors = ancestors_or_default(c)
+            if len(ancestors.intersection(concepts)) > 0:
+                to_prune.add(c)
 
-            usages = api.report(c, include_usage=inv, usage_with_inheritance=inh)
+        return concepts.difference(to_prune)
 
-            inv_slots = set()
-            for inv in usages["usage"]["inverses"]:
-                try:
-                    slot = relations[inv["slot"]]
-                except:
-                    slot = inv["slot"]
-                facet = inv["facet"]
-                filler = inv["concept"]
+    # Define a helper method for determining the domains and ranges of a given property
+    def get_domain_range(property: str) -> Tuple[Set[str], Set[str]]:
+        coll = api.collection
 
-                if slot not in frame[c]:
-                    frame[c][slot] = {}
-                if facet not in frame[c][slot]:
-                    frame[c][slot][facet] = []
-                frame[c][slot][facet].append(filler)
+        pipeline = [
+            {"$match": {"localProperties.slot": property}},
+            {"$project": {"localProperties": 1, "_id": "$name"}},
+            {"$unwind": "$localProperties"},
+            {"$match": {"localProperties.slot": property}},
+            {"$project": {"range": "$localProperties.filler"}}
+        ]
+        results = list(coll.aggregate(pipeline))
 
-                # Note which inverses have been used in this frame
-                inv_slots.add(slot)
+        domains = set(map(lambda r: r["_id"], results))
+        ranges = set(map(lambda r: r["range"], results))
 
-            # For each inverse slot that was used, reduce the fillers of each facet to their common set of ancestors
-            prune = []
-            for slot in inv_slots:
-                for facet in frame[c][slot]:
-                    fillers = set(frame[c][slot][facet])
-                    for filler in fillers:
-                        # If any of the filler's ancestors are in this slot/facet, it can be pruned
-                        ancestors = ancestors_or_default(filler)
-                        if len(ancestors.intersection(fillers)) > 0:
-                            prune.append((slot, facet, filler))
+        domains = reduce_to_common_ancestors(domains)
 
-            # Remove the fillers marked as pruned
-            for p in prune:
-                frame[c][p[0]][p[1]].remove(p[2])
+        if "relation" in ancestors_or_default(property):
+            ranges = reduce_to_common_ancestors(ranges)
 
-        # Convert frame names, slots, facets, and relation fillers to upper case
+        return domains, ranges
+
+    # Define a helper method for explicitly populating a frame with its inverses (NOT USED AT THIS TIME)
+    def populate_inverses(c: str, frame: dict):
+        usages = api.report(c, include_usage=True, usage_with_inheritance=compile_inherited_values)
+        inv_slots = set()
+        for inv in usages["usage"]["inverses"]:
+            try:
+                slot = relations[inv["slot"]]
+            except:
+                slot = inv["slot"]
+            facet = inv["facet"]
+            filler = inv["concept"]
+
+            if slot not in frame[c]:
+                frame[c][slot] = {}
+            if facet not in frame[c][slot]:
+                frame[c][slot][facet] = []
+            frame[c][slot][facet].append(filler)
+
+            # Note which inverses have been used in this frame
+            inv_slots.add(slot)
+
+        # Reduce all inverse to their common ancestors
+        for slot in inv_slots:
+            for facet in frame[c][slot].keys():
+                fillers = set(frame[c][slot][facet])
+                fillers = reduce_to_common_ancestors(fillers)
+                frame[c][slot][facet] = list(fillers)
+
+    # Define a helper method to declare a slot/facet if needed
+    def declare_slot_facet(frame: dict, slot: str, facet: str):
+        if slot not in frame:
+            frame[slot] = {}
+        if facet not in frame[slot]:
+            frame[slot][facet] = []
+
+    # Define a helper method to format the frame (with upper casing, etc.)
+    def format_frame_for_insert(frame: dict) -> dict:
         frame = frame[c]
         for slot_name in list(frame.keys()):
             slot = frame.pop(slot_name)
@@ -267,15 +297,68 @@ def compile(collection: str, inh: bool=False, inv: bool=False):
 
             for facet_name in list(slot.keys()):
                 facet = slot.pop(facet_name)
-                slot[facet_name.upper()] = list(map(lambda filler: filler.upper() if filler in concepts else filler, facet))
+                slot[facet_name.upper()] = list(map(lambda filler: filler.upper() if filler in concepts or slot_name == "inverse" else filler, facet))
 
         frame["_id"] = c.upper()
+        return frame
+
+    # Initialize the state
+    count = 0
+    properties = []
+
+    # Compile each concept
+    local = not compile_inherited_values
+    for c in concepts:
+        frame = api.get(c, local=local)[0]
+
+        if compile_domains_and_ranges and "property" in ancestors_or_default(c):
+            domains, ranges = get_domain_range(c)
+
+            declare_slot_facet(frame[c], "domain", "sem")
+            frame[c]["domain"]["sem"] = domains
+
+            declare_slot_facet(frame[c], "range", "sem")
+            frame[c]["range"]["sem"] = ranges
+
+        # Convert frame names, slots, facets, and relation fillers to upper case
+        frame = format_frame_for_insert(frame)
+
+        if compile_inverses and "relation" in ancestors_or_default(c):
+            properties.append(frame)
 
         count += 1
         compiled.insert_one(frame)
         compiled.update_one(
             {"_id": "PROGRESS"},
             {"$set": {"status.count": count, "status.last": c}}
+        )
+
+    # Compile each inverse property (this list will be empty if compile_inverses is False)
+    import copy
+    for property in properties:
+        inverse = copy.deepcopy(property)
+        inverse["_id"] = relations[property["_id"].lower()].upper()
+
+        if inverse["_id"].lower() in relations.keys():
+            continue
+
+        inverse["INVERSE"] = {"VALUE": [property["_id"]]}
+
+        declare_slot_facet(inverse, "DOMAIN", "SEM")
+        declare_slot_facet(inverse, "RANGE", "SEM")
+
+        inverse["DOMAIN"]["SEM"] = property["RANGE"]["SEM"]
+        inverse["RANGE"]["SEM"] = property["DOMAIN"]["SEM"]
+
+        try:
+            compiled.insert_one(inverse)
+        except pymongo.errors.DuplicateKeyError as e:
+            print("Duplicate key %s" % inverse["_id"])
+
+        # Add the inverse as an explicit SUBCLASSES value of its parent
+        compiled.update_one(
+            {"_id": property["IS-A"]["VALUE"][0]},
+            {"$push": {"SUBCLASSES.VALUE": inverse["_id"]}}
         )
 
     # Mark the task as finished
@@ -322,7 +405,7 @@ def export(collection: str, format: str):
 
         # Pickle
         import pickle
-        filename = path + "/" + "compiled_" + collection + ".p"
+        filename = path + "/" + "ontology_" + collection + ".p"
         f = open(filename, "wb")
         pickle.dump(ontology, f)
         f.close()
@@ -348,7 +431,7 @@ def export(collection: str, format: str):
 
         ontology = list(map(lambda c: map_concept(c["_id"], c), cc))
 
-        filename = path + "/" + "compiled_" + collection + ".lisp"
+        filename = path + "/" + "ontology_" + collection + ".lisp"
         out = open(filename, "w")
         for line in ontology:
             out.write(line)
