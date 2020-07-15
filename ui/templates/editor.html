@@ -4,7 +4,10 @@
     <meta charset="UTF-8">
     <title>Ontology</title>
     <script src="https://code.jquery.com/jquery-3.3.1.min.js" integrity="sha256-FgpCb/KJQlLNfOu91ta32o/NMZxltwRo8QtmkMRdAu8=" crossorigin="anonymous"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/popper.js/1.14.3/umd/popper.min.js" integrity="sha384-ZMP7rVo3mIykV+2+9J3UJ46jBk0WLaUAdn689aCwoqbBJiSnjAK/l8WvCWPIPm49" crossorigin="anonymous"></script>
     <script src="https://stackpath.bootstrapcdn.com/bootstrap/4.1.3/js/bootstrap.bundle.min.js" integrity="sha384-pjaaA8dDz/5BgdFUPX6M/9SUZv4d12SUPF0axWc+VRZkx5xU3daN+lYb49+Ax+Tl" crossorigin="anonymous"></script>
+    <script src="https://cdn.jsdelivr.net/npm/axios/dist/axios.min.js"></script>
+
     <link href="https://stackpath.bootstrapcdn.com/bootstrap/4.1.3/css/bootstrap.min.css" rel="stylesheet" integrity="sha384-MCw98/SFnGE8fJT3GXwEOngsV7Zt27NXFoaoApmYm81iuXoPkFOJwJ8ERdknLPMO" crossorigin="anonymous">
     <link rel="stylesheet" href="https://use.fontawesome.com/releases/v5.3.1/css/all.css" integrity="sha384-mzrmE5qonljUremFsqc01SB46JvROS7bZs3IO2EmfFsd15uHvIt+Y8vEf7N7fWAU" crossorigin="anonymous">
 
@@ -39,6 +42,12 @@
         .from-field {
             font-size: xx-small;
             color: grey;
+        }
+        #search-results {
+            font-size: small;
+        }
+        #search-results-contents {
+            display: inline;
         }
         .recent {
             font-size: small;
@@ -261,13 +270,46 @@
             window.location.href = "/ontology/view/" + search;
         }
 
+        function search() {
+            var search = $("#search-input").val();
+            if (search.length >= 3) {
+                axios.get("/ontology/api/search", {
+                    params: {
+                        "name_like": search
+                    }
+                }).then(function(response) {
+                    load_search_results(response.data);
+                }).catch(function(error) {
+                    console.log(error.response["data"]);
+                });
+            } else {
+                $("#search-results").hide();
+            }
+        }
+
+        function load_search_results(results) {
+            if (results.length == 0) {
+                $("#search-results").hide();
+                return;
+            }
+
+            $("#search-results").show();
+
+            var render = results.map(x => `<a href="/ontology/view/${x}">${x}</a>`).join(" • ");
+            $("#search-results-contents").html(render);
+        }
+
         $(document).ready(function() {
+            $("#search-results").hide();
+
             $("#search-button").on("click", function() {
                 go();
             });
             $("#search-input").on("keyup", function(e) {
                 if (e.key == "Enter") {
                     go();
+                } else {
+                    search();
                 }
             });
             $("#hide-inherit-filter").on("change", function() {
@@ -396,6 +438,11 @@
                                 <button class="btn btn-success" type="button" id="new-concept-button" data-toggle="modal" data-target="#addConceptModal">New</button>
                             </div>
                         {% endif %}
+                    </div>
+
+                    <div id="search-results">
+                        Results:
+                        <div id="search-results-contents"></div>
                     </div>
 
                     {% if "recent" in payload and payload["recent"]|length > 0 %}

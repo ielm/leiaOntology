@@ -964,3 +964,33 @@ class APIRemoveConceptTestCase(unittest.TestCase):
         self.assertNotIn("slot2", OntologyAPI().get("other1")[0]["other1"])
         self.assertIn("other1", OntologyAPI().get("other1")[0]["other1"]["slot3"]["sem"])
         self.assertIn("other1", OntologyAPI().get("other2")[0]["other2"]["slot1"]["sem"])
+
+
+class APISearchTestCase(unittest.TestCase):
+
+    def setUp(self):
+        client = ont.management.getclient()
+
+        ont.management.DATABASE = "unittest"
+        os.environ[ont.management.ONTOLOGY_ACTIVE] = "unittest"
+
+    def tearDown(self):
+        client = ont.management.getclient()
+        client.drop_database("unittest")
+
+    def test_search_name_like(self):
+        c1 = mock_concept("concept1")
+        c2 = mock_concept("concept2")
+        c3 = mock_concept("concept3")
+
+        self.assertEqual(["concept1"], OntologyAPI().search(name_like="concept1"))
+        self.assertEqual(["concept1", "concept2", "concept3"], OntologyAPI().search(name_like="concept"))
+        self.assertEqual(["concept1"], OntologyAPI().search(name_like="ept1"))
+        self.assertEqual(["concept1", "concept2", "concept3"], OntologyAPI().search(name_like="once"))
+        self.assertEqual([], OntologyAPI().search(name_like="xyz"))
+
+        # No name specified returns an empty list
+        self.assertEqual([], OntologyAPI().search())
+
+        # Name must be at least 3 characters to search (treats as None otherwise)
+        self.assertEqual([], OntologyAPI().search(name_like="co"))

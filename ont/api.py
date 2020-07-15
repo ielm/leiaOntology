@@ -21,6 +21,25 @@ class OntologyAPI(object):
 
         return sorted(results[0]["all"])
 
+    def search(self, name_like: str = None) -> List[str]:
+
+        if name_like is not None and len(name_like) < 3:
+            name_like = None
+
+        # Here, if *all* parameters are none, return an empty list
+        if name_like is None:
+            return []
+
+        if name_like is not None:
+            name_like = name_like.lower()
+
+        results = list(self.collection.find({
+            "name": {"$regex": name_like}
+        }))
+
+        results = list(map(lambda r: r["name"], results))
+        return sorted(results)
+
     def get(self, concepts: Union[str, List[str]], local: bool=False, metadata: bool=False) -> List[dict]:
         if isinstance(concepts, str):
             concepts = [concepts]

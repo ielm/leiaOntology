@@ -39,6 +39,12 @@ class OntologyWrapperTestCase(unittest.TestCase):
         response = Ontology().get(["concept"], local=True)
         self.assertEqual(response, [OntologyAPI().format(concept, local=True)])
 
+    def test_search(self):
+        c = mock_concept("concept")
+
+        response = Ontology().search(name_like="concept")
+        self.assertEqual(response, OntologyAPI().search(name_like="concept"))
+
     def test_ancestors(self):
         concept = mock_concept("concept", parents=["parent"])
         parent = mock_concept("parent", parents=["grandparent"])
