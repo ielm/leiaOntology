@@ -1,4 +1,4 @@
-from flask import Flask, redirect, request, abort, render_template, session
+from flask import Flask, jsonify, make_response, redirect, request, abort, render_template, session
 from flask_cors import CORS
 from flask_socketio import SocketIO
 from itertools import groupby
@@ -331,7 +331,15 @@ def edit_add_parent(concept):
     if "parent" not in data:
         abort(400)
 
-    OntologyAPI().add_parent(concept, data["parent"])
+    parent = data["parent"]
+
+    if len(OntologyAPI().get(concept, local=True)) == 0:
+        abort(make_response(jsonify(message="Unknown concept %s." % concept.lower()), 400))
+
+    if len(OntologyAPI().get(parent, local=True)) == 0:
+        abort(make_response(jsonify(message="Unknown concept %s." % parent.lower()), 400))
+
+    OntologyAPI().add_parent(concept, parent)
 
     return "OK"
 
@@ -365,7 +373,12 @@ def edit_add_concept():
     if "concept" not in data or "parent" not in data or "definition" not in data:
         abort(400)
 
-    OntologyAPI().add_concept(data["concept"], data["parent"], data["definition"])
+    parent = data["parent"]
+
+    if len(OntologyAPI().get(parent, local=True)) == 0:
+        abort(make_response(jsonify(message="Unknown concept %s." % parent.lower()), 400))
+
+    OntologyAPI().add_concept(data["concept"], parent, data["definition"])
 
     return "OK"
 

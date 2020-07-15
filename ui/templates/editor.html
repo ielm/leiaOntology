@@ -73,6 +73,14 @@
         #insert-property .form-control-sm {
             margin-right: 5px;
         }
+
+        .hierarchy-self-container {
+            margin-left: 15px;
+        }
+
+        .hierarchy-subclasses-container {
+            margin-left: 15px;
+        }
     </style>
 
     <script>
@@ -205,7 +213,24 @@
             }).done(function(data) {
                 location.reload();
             }).fail(function(error) {
-                console.log(error);
+                show_response_message(error.responseJSON["message"]);
+            });
+        }
+
+        function add_subclass(subclass) {
+            var data = {
+                "parent": concept
+            };
+
+            $.ajax({
+                url: "/ontology/edit/add_parent/" + subclass,
+                method: "POST",
+                data: JSON.stringify(data),
+                contentType: "application/json",
+            }).done(function(data) {
+                location.reload();
+            }).fail(function(error) {
+                show_response_message(error.responseJSON["message"]);
             });
         }
 
@@ -241,7 +266,7 @@
             }).done(function(data) {
                 window.location = "/ontology/view/" + name;
             }).fail(function(error) {
-                console.log(error);
+                show_response_message(error.responseJSON["message"]);
             });
         }
 
@@ -299,8 +324,14 @@
             $("#search-results-contents").html(render);
         }
 
+        function show_response_message(message) {
+            $("#response-message").show();
+            $("#response-message-contents").text(message);
+        }
+
         $(document).ready(function() {
             $("#search-results").hide();
+            $("#response-message").hide();
 
             $("#search-button").on("click", function() {
                 go();
@@ -375,6 +406,10 @@
                 var parent = $("#add-parent-field").val();
                 add_parent(parent);
             });
+            $("#add-subclass-button").on("click", function() {
+                var subclass = $("#add-subclass-field").val();
+                add_subclass(subclass);
+            });
             $(".remove-parent-button").on("click", function(e) {
                 var target = $(e.currentTarget);
                 var parent = target.data("parent");
@@ -398,6 +433,9 @@
             $("#remove-concept-confirm-button").on("click", function() {
                 var includeUsages = $("#remove-concept-with-usages-check")[0].checked;
                 remove_concept(includeUsages);
+            });
+            $("#hide-response-message-button").on("click", function() {
+                $("#response-message").hide();
             });
         });
     </script>
@@ -425,6 +463,13 @@
                             </button>
                         </div>
                     {% endif %}
+
+                    <div id="response-message" class="alert alert-warning alert-dismissible fade show" role="alert">
+                        <div id="response-message-contents"></div>
+                        <button id="hide-response-message-button" type="button" class="close" aria-label="Close">
+                            <span aria-hidden="true">&times;</span>
+                        </button>
+                    </div>
 
 
                     <div class="input-group mb-3">
@@ -463,6 +508,30 @@
         <div class="col-md-3">
             <div class="card hierarchy-card">
                 <div class="card-header">
+                    Lineage
+                </div>
+                <div class="card-body">
+                    <div class="hierarchy-parents-container">
+                        {% for parent in payload.isa %}
+                            <div><a href="/ontology/view/{{ parent }}">{{ parent }}</a></div>
+                        {% endfor %}
+                        <div class="hierarchy-self-container">
+                            {% for sibling in payload.siblings %}
+                                <div><a href="/ontology/view/{{ sibling }}">{{ sibling }}</a></div>
+                            {% endfor %}
+                            {{ payload.name }}
+                            <div class="hierarchy-subclasses-container">
+                                {% for subclass in payload.subclasses %}
+                                    <div><a href="/ontology/view/{{ subclass }}">{{ subclass }}</a></div>
+                                {% endfor %}
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <div class="card hierarchy-card">
+                <div class="card-header">
                     IS-A
                 </div>
                 <div class="card-body">
@@ -480,7 +549,7 @@
                         <div id="add-parent" style="margin-top: 5px;">
                             <form class="form-inline">
                                 <button id="add-parent-button" type="button" class="btn btn-success inline-edit-button mb-2"><i class="far fa-plus-square"></i></button>
-                                <div class="form-group mx-sm-2 mb-2">
+                                <div class="form-group mx-sm-2 mb-2" style="width: 0px">
                                     <input type="text" class="form-control form-control-sm" id="add-parent-field" placeholder="Parent">
                                 </div>
                             </form>
@@ -496,6 +565,16 @@
                     {% for subclass in payload.subclasses %}
                         <div><a href="/ontology/view/{{ subclass }}">{{ subclass }}</a></div>
                     {% endfor %}
+                    {% if env.editing %}
+                        <div id="add-subclass" style="margin-top: 5px;">
+                            <form class="form-inline">
+                                <button id="add-subclass-button" type="button" class="btn btn-success inline-edit-button mb-2"><i class="far fa-plus-square"></i></button>
+                                <div class="form-group mx-sm-2 mb-2" style="width: 0px">
+                                    <input type="text" class="form-control form-control-sm" id="add-subclass-field" placeholder="Subclass">
+                                </div>
+                            </form>
+                        </div>
+                    {% endif %}
                 </div>
             </div>
             <div class="card hierarchy-card">
