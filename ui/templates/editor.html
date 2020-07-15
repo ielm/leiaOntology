@@ -385,21 +385,21 @@
                 var target = $(e.currentTarget);
                 var slot = target.data("slot");
                 var facet = target.data("facet");
-                var filler = target.data("filler");
+                var filler = String(target.data("filler"));
                 remove_property(slot, facet, filler);
             });
             $(".block-property-button").on("click", function(e) {
                 var target = $(e.currentTarget);
                 var slot = target.data("slot");
                 var facet = target.data("facet");
-                var filler = target.data("filler");
+                var filler = String(target.data("filler"));
                 block_property(slot, facet, filler);
             });
             $(".unblock-property-button").on("click", function(e) {
                 var target = $(e.currentTarget);
                 var slot = target.data("slot");
                 var facet = target.data("facet");
-                var filler = target.data("filler");
+                var filler = String(target.data("filler"));
                 unblock_property(slot, facet, filler);
             });
             $("#add-parent-button").on("click", function() {
