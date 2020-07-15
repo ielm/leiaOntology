@@ -420,7 +420,7 @@ class OntologyAPI(object):
         return report
 
     def update_definition(self, concept: str, definition: str):
-        concept = concept.lower()
+        concept = concept.lower().strip()
 
         self.collection.update_one({
             "name": concept.lower(),
@@ -431,71 +431,71 @@ class OntologyAPI(object):
         })
 
     def insert_property(self, concept: str, slot: str, facet: str, filler: str):
-        concept = concept.lower()
+        concept = concept.lower().strip()
 
         self.collection.update_one({
-            "name": concept.lower(),
+            "name": concept,
         }, {
             "$push": {
                 "localProperties": {
-                    "slot": slot.lower(),
-                    "facet": facet.lower(),
-                    "filler": filler
+                    "slot": slot.lower().strip(),
+                    "facet": facet.lower().strip(),
+                    "filler": filler.strip()
                 }
             }
         })
 
     def remove_property(self, concept: str, slot: str, facet: str, filler: str):
-        concept = concept.lower()
+        concept = concept.lower().strip()
 
         self.collection.update_one({
-            "name": concept.lower(),
+            "name": concept,
         }, {
             "$pull": {
                 "localProperties": {
-                    "slot": slot.lower(),
-                    "facet": facet.lower(),
-                    "filler": filler
+                    "slot": slot.lower().strip(),
+                    "facet": facet.lower().strip(),
+                    "filler": filler.strip()
                 }
             }
         })
 
     def block_property(self, concept: str, slot: str, facet: str, filler: str):
-        concept = concept.lower()
+        concept = concept.lower().strip()
 
         self.collection.update_one({
-            "name": concept.lower(),
+            "name": concept,
         }, {
             "$push": {
                 "totallyRemovedProperties": {
-                    "slot": slot.lower(),
-                    "facet": facet.lower(),
-                    "filler": filler
+                    "slot": slot.lower().strip(),
+                    "facet": facet.lower().strip(),
+                    "filler": filler.strip()
                 }
             }
         })
 
     def unblock_property(self, concept: str, slot: str, facet: str, filler: str):
-        concept = concept.lower()
+        concept = concept.lower().strip()
 
         self.collection.update_one({
-            "name": concept.lower(),
+            "name": concept,
         }, {
             "$pull": {
                 "totallyRemovedProperties": {
-                    "slot": slot.lower(),
-                    "facet": facet.lower(),
-                    "filler": filler
+                    "slot": slot.lower().strip(),
+                    "facet": facet.lower().strip(),
+                    "filler": filler.strip()
                 }
             }
         })
 
     def add_parent(self, concept: str, parent: str):
-        concept = concept.lower()
-        parent = parent.lower()
+        concept = concept.lower().strip()
+        parent = parent.lower().strip()
 
         self.collection.update_one({
-            "name": concept.lower(),
+            "name": concept,
         }, {
             "$push": {
                 "parents": parent
@@ -503,11 +503,11 @@ class OntologyAPI(object):
         })
 
     def remove_parent(self, concept: str, parent: str):
-        concept = concept.lower()
-        parent = parent.lower()
+        concept = concept.lower().strip()
+        parent = parent.lower().strip()
 
         self.collection.update_one({
-            "name": concept.lower(),
+            "name": concept,
         }, {
             "$pull": {
                 "parents": parent
@@ -515,10 +515,10 @@ class OntologyAPI(object):
         })
 
     def add_concept(self, concept: str, parent: Union[str, None], definition: str):
-        concept = concept.lower()
+        concept = concept.lower().strip()
 
         if parent is not None:
-            parent = parent.lower()
+            parent = parent.lower().strip()
 
         parents = [parent]
         if parent is None:
@@ -537,7 +537,7 @@ class OntologyAPI(object):
         })
 
     def remove_concept(self, concept: str, include_usages: bool=False):
-        concept = concept.lower()
+        concept = concept.lower().strip()
 
         if include_usages:
             report = self.report(concept, include_usage=True)

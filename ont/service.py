@@ -331,7 +331,8 @@ def edit_add_parent(concept):
     if "parent" not in data:
         abort(400)
 
-    parent = data["parent"]
+    concept = concept.strip()
+    parent = data["parent"].strip()
 
     if len(OntologyAPI().get(concept, local=True)) == 0:
         abort(make_response(jsonify(message="Unknown concept %s." % concept.lower()), 400))
@@ -373,8 +374,8 @@ def edit_add_concept():
     if "concept" not in data or "parent" not in data or "definition" not in data:
         abort(400)
 
-    concept = data["concept"]
-    parent = data["parent"]
+    concept = data["concept"].strip()
+    parent = data["parent"].strip()
 
     if len(OntologyAPI().get(concept, local=True)) != 0:
         abort(make_response(jsonify(message="Concept %s already exists." % concept.lower()), 400))
