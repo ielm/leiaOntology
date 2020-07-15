@@ -107,6 +107,9 @@ def view_concept(concept):
             session.pop("not-found")
         return redirect("/ontology/manage")
 
+    if concept != concept.lower():
+        return redirect("/ontology/view/" + concept.lower())
+
     if "recent" not in session:
         session["recent"] = list()
 
@@ -184,6 +187,9 @@ def view_report(concept):
 
     if not ont.management.can_connect():
         return redirect("/ontology/manage")
+
+    if concept != concept.lower():
+        return redirect("/ontology/view/report/" + concept.lower())
 
     usage_with_inheritance = False
     try:

@@ -25,6 +25,8 @@ class OntologyAPI(object):
         if isinstance(concepts, str):
             concepts = [concepts]
 
+        concepts = list(map(lambda c: c.lower(), concepts))
+
         results = []
         for record in self.collection.find({"$or": list(map(lambda concept: {"name": concept}, concepts))}):
             results.append(self.format(record, local=local, metadata=metadata))
@@ -32,6 +34,8 @@ class OntologyAPI(object):
         return results
 
     def ancestors(self, concept: str, immediate: bool=False, details: bool=False, paths: bool=False) -> Union[List[str], List[List[str]], List[dict], List[List[dict]]]:
+        concept = concept.lower()
+
         pipeline = [
             {
                 "$match": {
@@ -94,6 +98,8 @@ class OntologyAPI(object):
         return output
 
     def descendants(self, concept: str, immediate: bool = False, details: bool = False, paths: bool = False) -> Union[List[str], List[List[str]], List[dict], List[List[dict]]]:
+        concept = concept.lower()
+
         pipeline = [
             {
                 "$match": {
@@ -161,6 +167,8 @@ class OntologyAPI(object):
         return output
 
     def siblings(self, concept: str) -> List[str]:
+        concept = concept.lower()
+
         pipeline = [
             {"$match": {"name": concept}},
             {
@@ -318,6 +326,8 @@ class OntologyAPI(object):
         return relations
 
     def report(self, concept: str, include_usage: bool=False, usage_with_inheritance: bool=False):
+        concept = concept.lower()
+
         report = {}
 
         if include_usage:
@@ -391,6 +401,8 @@ class OntologyAPI(object):
         return report
 
     def update_definition(self, concept: str, definition: str):
+        concept = concept.lower()
+
         self.collection.update_one({
             "name": concept.lower(),
         }, {
@@ -400,6 +412,8 @@ class OntologyAPI(object):
         })
 
     def insert_property(self, concept: str, slot: str, facet: str, filler: str):
+        concept = concept.lower()
+
         self.collection.update_one({
             "name": concept.lower(),
         }, {
@@ -413,6 +427,8 @@ class OntologyAPI(object):
         })
 
     def remove_property(self, concept: str, slot: str, facet: str, filler: str):
+        concept = concept.lower()
+
         self.collection.update_one({
             "name": concept.lower(),
         }, {
@@ -426,6 +442,8 @@ class OntologyAPI(object):
         })
 
     def block_property(self, concept: str, slot: str, facet: str, filler: str):
+        concept = concept.lower()
+
         self.collection.update_one({
             "name": concept.lower(),
         }, {
@@ -439,6 +457,8 @@ class OntologyAPI(object):
         })
 
     def unblock_property(self, concept: str, slot: str, facet: str, filler: str):
+        concept = concept.lower()
+
         self.collection.update_one({
             "name": concept.lower(),
         }, {
@@ -452,6 +472,9 @@ class OntologyAPI(object):
         })
 
     def add_parent(self, concept: str, parent: str):
+        concept = concept.lower()
+        parent = parent.lower()
+
         self.collection.update_one({
             "name": concept.lower(),
         }, {
@@ -461,6 +484,9 @@ class OntologyAPI(object):
         })
 
     def remove_parent(self, concept: str, parent: str):
+        concept = concept.lower()
+        parent = parent.lower()
+
         self.collection.update_one({
             "name": concept.lower(),
         }, {
@@ -470,6 +496,11 @@ class OntologyAPI(object):
         })
 
     def add_concept(self, concept: str, parent: Union[str, None], definition: str):
+        concept = concept.lower()
+
+        if parent is not None:
+            parent = parent.lower()
+
         parents = [parent]
         if parent is None:
             parents = []
@@ -487,6 +518,8 @@ class OntologyAPI(object):
         })
 
     def remove_concept(self, concept: str, include_usages: bool=False):
+        concept = concept.lower()
+
         if include_usages:
             report = self.report(concept, include_usage=True)
             for child in report["usage"]["subclasses"]:
