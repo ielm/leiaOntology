@@ -334,6 +334,9 @@ def edit_add_parent(concept):
     concept = concept.strip()
     parent = data["parent"].strip()
 
+    if concept == parent:
+        abort(make_response(jsonify(message="Cannot assign %s as a parent of itself." % concept.lower()), 400))
+
     if len(OntologyAPI().get(concept, local=True)) == 0:
         abort(make_response(jsonify(message="Unknown concept %s." % concept.lower()), 400))
 
@@ -376,6 +379,9 @@ def edit_add_concept():
 
     concept = data["concept"].strip()
     parent = data["parent"].strip()
+
+    if concept == parent:
+        abort(make_response(jsonify(message="Cannot assign %s as a parent of itself." % concept.lower()), 400))
 
     if len(OntologyAPI().get(concept, local=True)) != 0:
         abort(make_response(jsonify(message="Concept %s already exists." % concept.lower()), 400))

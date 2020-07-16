@@ -866,6 +866,12 @@ class APIAddParentTestCase(unittest.TestCase):
         OntologyAPI().add_parent("child", "parent2")
         self.assertEqual({"parent1", "parent2"}, set(OntologyAPI().ancestors("child", immediate=True)))
 
+    def test_cannot_add_self_as_parent(self):
+        concept = mock_concept("concept")
+
+        with self.assertRaises(Exception):
+            OntologyAPI().add_parent("concept", "concept")
+
 
 class APIRemoveParentTestCase(unittest.TestCase):
 
@@ -917,6 +923,12 @@ class APIAddConceptTestCase(unittest.TestCase):
         self.assertEqual("a definition", results[0]["concept"]["_metadata"]["definition"])
 
         self.assertEqual(["parent"], OntologyAPI().ancestors("concept"))
+
+    def test_cannot_declare_self_as_parent(self):
+        parent = mock_concept("parent")
+
+        with self.assertRaises(Exception):
+            OntologyAPI().add_concept("parent", "parent", "a definition")
 
 
 class APIRemoveConceptTestCase(unittest.TestCase):

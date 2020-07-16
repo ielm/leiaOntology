@@ -339,6 +339,9 @@ class OntologyWrapperTestCase(unittest.TestCase):
         Ontology().add_parent("child", "parent2")
         self.assertEqual({"parent1", "parent2"}, set(OntologyAPI().ancestors("child", immediate=True)))
 
+        with self.assertRaises(Exception):
+            Ontology().add_parent("child", "child")
+
     def test_edit_remove_parent(self):
         parent1 = mock_concept("parent1")
         parent2 = mock_concept("parent2")
@@ -364,6 +367,9 @@ class OntologyWrapperTestCase(unittest.TestCase):
         self.assertEqual("a definition", results[0]["concept"]["_metadata"]["definition"])
 
         self.assertEqual(["parent"], OntologyAPI().ancestors("concept"))
+
+        with self.assertRaises(Exception):
+            Ontology().add_concept("x", "x", "a definition")
 
     def test_edit_remove_concept(self):
         concept = mock_concept("concept")

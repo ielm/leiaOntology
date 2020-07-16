@@ -546,6 +546,21 @@ class APIEditAddParentServiceTestCase(unittest.TestCase):
 
         self.assertEqual(["parent"], OntologyAPI().ancestors("child", immediate=True))
 
+    def test_400_if_same_parent_child(self):
+        mock_concept("concept")
+
+        data = {
+            "parent": "concept"
+        }
+
+        response = self.app.post("/ontology/edit/add_parent/concept",
+                                 data=json.dumps(data),
+                                 content_type="application/json")
+        self.assertEqual(400, response._status_code)
+        self.assertEqual({
+            "message": "Cannot assign concept as a parent of itself."
+        }, json.loads(response.data.decode("utf-8")))
+
 
 class APIEditRemoveParentServiceTestCase(unittest.TestCase):
 
@@ -624,6 +639,21 @@ class APIEditAddConceptParentServiceTestCase(unittest.TestCase):
         self.assertEqual("a definition", results[0]["child"]["_metadata"]["definition"])
 
         self.assertEqual(["parent"], OntologyAPI().ancestors("child"))
+
+    def test_400_if_same_parent_child(self):
+        data = {
+            "concept": "concept",
+            "parent": "concept",
+            "definition": "a definition"
+        }
+
+        response = self.app.post("/ontology/edit/add_concept",
+                                 data=json.dumps(data),
+                                 content_type="application/json")
+        self.assertEqual(400, response._status_code)
+        self.assertEqual({
+            "message": "Cannot assign concept as a parent of itself."
+        }, json.loads(response.data.decode("utf-8")))
 
 
 class APIEditRemoveConceptParentServiceTestCase(unittest.TestCase):

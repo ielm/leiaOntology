@@ -494,6 +494,9 @@ class OntologyAPI(object):
         concept = concept.lower().strip()
         parent = parent.lower().strip()
 
+        if concept == parent:
+            raise Exception("Cannot assign %s as a parent of itself." % concept)
+
         self.collection.update_one({
             "name": concept,
         }, {
@@ -523,6 +526,9 @@ class OntologyAPI(object):
         parents = [parent]
         if parent is None:
             parents = []
+
+        if concept in parents:
+            raise Exception("Cannot assign %s as a parent of itself." % concept)
 
         self.collection.insert_one({
             "name": concept,
