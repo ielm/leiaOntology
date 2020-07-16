@@ -50,6 +50,11 @@ def api_get():
     return json.dumps(OntologyAPI().get(concepts, local=local))
 
 
+@app.route("/ontology/api/roots", methods=["GET"])
+def api_roots():
+    return json.dumps(OntologyAPI().roots())
+
+
 @app.route("/ontology/api/search", methods=["GET"])
 def api_search():
     name_like = request.args.get("name_like")

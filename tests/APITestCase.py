@@ -304,6 +304,29 @@ class APIGetTestCase(unittest.TestCase):
         self.assertTrue(results[0]["concept"]["rel2-of"]["is_relation"])
 
 
+class APIRootsTestCase(unittest.TestCase):
+
+    def setUp(self):
+        client = ont.management.getclient()
+
+        ont.management.DATABASE = "unittest"
+        os.environ[ont.management.ONTOLOGY_ACTIVE] = "unittest"
+
+    def tearDown(self):
+        client = ont.management.getclient()
+        client.drop_database("unittest")
+
+
+    def test_roots(self):
+        concept = mock_concept("concept", parents=["parent"])
+        parent = mock_concept("parent", parents=["grandparent1", "grandparent2"])
+        grandparent1 = mock_concept("grandparent1")
+        grandparent2 = mock_concept("grandparent2")
+
+        results = OntologyAPI().roots()
+        self.assertEqual({"grandparent1", "grandparent2"}, set(results))
+
+
 class APIAncestorsTestCase(unittest.TestCase):
 
     def setUp(self):

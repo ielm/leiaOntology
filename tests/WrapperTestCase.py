@@ -45,6 +45,17 @@ class OntologyWrapperTestCase(unittest.TestCase):
         response = Ontology().search(name_like="concept")
         self.assertEqual(response, OntologyAPI().search(name_like="concept"))
 
+    def test_roots(self):
+        concept = mock_concept("concept", parents=["parent"])
+        parent = mock_concept("parent", parents=["grandparent1", "grandparent2"])
+        grandparent1 = mock_concept("grandparent1")
+        grandparent2 = mock_concept("grandparent2")
+
+        response = Ontology().roots()
+        self.assertEqual(2, len(response))
+        self.assertTrue("grandparent1" in response)
+        self.assertTrue("grandparent2" in response)
+
     def test_ancestors(self):
         concept = mock_concept("concept", parents=["parent"])
         parent = mock_concept("parent", parents=["grandparent"])

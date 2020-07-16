@@ -48,6 +48,34 @@ class APIGetServiceTestCase(unittest.TestCase):
         response = json.loads(response.data)
         self.assertEqual(response, OntologyAPI().get("child", local=True))
 
+
+class APIRootsServiceTestCase(unittest.TestCase):
+
+    def setUp(self):
+        client = ont.management.getclient()
+
+        ont.management.DATABASE = "unittest"
+        os.environ[ont.management.ONTOLOGY_ACTIVE] = "unittest"
+
+        self.app = service.test_client()
+
+    def tearDown(self):
+        client = ont.management.getclient()
+        client.drop_database("unittest")
+
+    def test_roots(self):
+        concept = mock_concept("concept", parents=["parent"])
+        parent = mock_concept("parent", parents=["grandparent1", "grandparent2"])
+        grandparent1 = mock_concept("grandparent1")
+        grandparent2 = mock_concept("grandparent2")
+
+        response = self.app.get("/ontology/api/roots")
+        response = json.loads(response.data)
+
+        self.assertEqual(2, len(response))
+        self.assertTrue("grandparent1" in response)
+        self.assertTrue("grandparent2" in response)
+
         
 class APIAncestorsServiceTestCase(unittest.TestCase):
 

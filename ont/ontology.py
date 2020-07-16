@@ -121,6 +121,10 @@ class Ontology():
         results = self.__rget("/ontology/api/search", params={"name_like": name_like})
         return json.loads(results)
 
+    def roots(self):
+        results = self.__rget("/ontology/api/roots", params={})
+        return json.loads(results)
+
     def ancestors(self, concept, immediate=False, details=False, paths=False):
         results = self.__rget("/ontology/api/ancestors", params={"concept": concept, "immediate": immediate, "details": details, "paths": paths})
         return json.loads(results)

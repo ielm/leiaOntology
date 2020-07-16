@@ -21,6 +21,13 @@ class OntologyAPI(object):
 
         return sorted(results[0]["all"])
 
+    def roots(self) -> List[str]:
+        results = list(self.collection.find({
+            "parents.0": {"$exists": False}
+        }))
+
+        return sorted(list(map(lambda r: r["name"], results)))
+
     def search(self, name_like: str = None) -> List[str]:
 
         if name_like is not None and len(name_like) < 3:
