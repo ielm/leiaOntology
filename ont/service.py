@@ -138,6 +138,8 @@ def view_concept(concept):
     if "editing" not in session:
         session["editing"] = False
 
+    all_concepts = OntologyAPI().list()
+
     results = OntologyAPI().get(concept, metadata=True)
     if len(results) != 1:
         session["not-found"] = concept
@@ -179,6 +181,17 @@ def view_concept(concept):
     properties = sorted(properties, key=lambda p: (p["slot"], p["facet"]))
     properties = list(properties)
 
+    def convert_domains_and_ranges(d_and_r):
+        out = []
+        for k, v in d_and_r.items():
+            out.append((
+                k, list(map(lambda r: {
+                    "range": r,
+                    "is_concept": r in all_concepts
+                }, v))
+            ))
+        return out
+
     payload = {
         "name": concept,
         "metadata": definition["_metadata"],
@@ -186,7 +199,8 @@ def view_concept(concept):
         "subclasses": subclasses,
         "siblings": siblings,
         "properties": properties,
-        "recent": session["recent"]
+        "recent": session["recent"],
+        "domains_and_ranges": convert_domains_and_ranges(OntologyAPI().domains_and_ranges(concept))
     }
 
     if payload["name"] in session["recent"]:

@@ -666,6 +666,35 @@
                     </table>
                 </div>
             </div>
+            {% if payload["domains_and_ranges"]|length > 0 %}
+                <div class="card" style="margin-top: 20px;">
+                    <div class="card-header">
+                        <span class="name"><strong>Domains and Ranges</strong></span>
+                    </div>
+                    <div class="card-body">
+                        <table class="table table-sm table-striped table-borderless">
+                            {% for domain in payload["domains_and_ranges"] %}
+                            <tr>
+                                <td>
+                                    <a href="/ontology/view/{{ domain[0] }}">{{ domain[0] }}</a>
+                                </td>
+                                <td>
+                                    {% for range in domain[1] %}
+                                        <div>
+                                            {% if range["is_concept"] %}
+                                                <a href="/ontology/view/{{ range['range'] }}">{{ range["range"] }}</a>
+                                            {% else %}
+                                                {{ range["range"] }}
+                                            {% endif %}
+                                        </div>
+                                    {% endfor %}
+                                </td>
+                            </tr>
+                            {% endfor %}
+                        </table>
+                    </div>
+                </div>
+            {% endif %}
         </div>
     </div>
 
