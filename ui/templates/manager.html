@@ -79,6 +79,10 @@
                 modal.find('#ontology-old-name').val(ontology);
             });
 
+            jQuery('body').on('click', '#export-button-submit', function (event) {
+                $('#exportModal').modal('hide')
+            });
+
         });
 
     </script>
@@ -483,7 +487,7 @@
                 </div>
                 <div class="modal-footer">
                     <button type="button" class="btn btn-secondary" data-dismiss="modal">Cancel</button>
-                    <button type="submit" class="btn btn-primary" form="exportForm">Export</button>
+                    <button id="export-button-submit" type="submit" class="btn btn-primary" form="exportForm">Export</button>
                 </div>
             </div>
         </div>
