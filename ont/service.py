@@ -157,7 +157,7 @@ def view_concept(concept):
         for facet in results[0][concept][slot]:
             if facet in ["is_relation"]: continue
             for filler in results[0][concept][slot][facet]:
-                filler["is_relation"] = results[0][concept][slot]["is_relation"]
+                filler["is_relation"] = filler["filler"] in all_concepts
                 filler["from"] = None if concept == filler["defined_in"] else filler["defined_in"]
                 filler["status"] = "local"
                 if filler["blocked"]:
