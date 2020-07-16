@@ -309,7 +309,7 @@ def compile(collection: str, compile_inherited_values: bool=False, compile_domai
 
             for facet_name in list(slot.keys()):
                 facet = slot.pop(facet_name)
-                slot[facet_name.upper()] = list(map(lambda filler: filler.upper() if filler in concepts or slot_name == "inverse" else filler, facet))
+                slot[facet_name.upper()] = list(map(lambda filler: filler.upper() if type(filler) == str else filler, facet))
 
         frame["_id"] = c.upper()
         return frame
