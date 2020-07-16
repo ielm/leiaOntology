@@ -191,6 +191,11 @@ def view_concept(concept):
     return render_template("editor.html", payload=payload, env=env_payload())
 
 
+@app.route("/ontology/view/hierarchy", methods=["GET"])
+def view_hierarchy():
+    return render_template("hierarchy.html", roots=OntologyAPI().roots(), env=env_payload())
+
+
 @app.route("/ontology/view/report/<concept>", methods=["GET"])
 def view_report(concept):
 
