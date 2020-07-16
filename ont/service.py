@@ -100,6 +100,16 @@ def api_relations():
     return json.dumps(OntologyAPI().relations(inverses=inverses))
 
 
+@app.route("/ontology/api/domains_and_ranges", methods=["GET"])
+def api_domains_and_ranges():
+    if "property" not in request.args:
+        abort(400)
+
+    property = request.args["property"]
+
+    return json.dumps(OntologyAPI().domains_and_ranges(property))
+
+
 ### /ontology/view - routes for the editor and browser ui, GET only
 
 

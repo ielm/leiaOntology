@@ -1,4 +1,4 @@
-from typing import List, Union
+from typing import Dict, List, Union
 
 import ont.management
 
@@ -277,6 +277,25 @@ class OntologyAPI(object):
                 result.extend(inverses)
 
         return result
+
+    def domains_and_ranges(self, property: str) -> Dict[str, List[str]]:
+        property = property.lower().strip()
+
+        pipeline = [
+            {"$match": {"localProperties.slot": property}},
+            {"$project": {"name": 1, "localProperties": 1}},
+            {"$unwind": "$localProperties"},
+            {"$match": {"localProperties.slot": property}},
+            {"$project": {"domain": "$name", "range": "$localProperties.filler"}}
+        ]
+
+        results = {}
+        for dr in self.collection.aggregate(pipeline):
+            if dr["domain"] not in results:
+                results[dr["domain"]] = []
+            results[dr["domain"]].append(dr["range"])
+
+        return results
 
     def full_ancestry(self) -> dict:
         pipeline = [

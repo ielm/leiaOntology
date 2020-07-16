@@ -200,6 +200,20 @@ class OntologyWrapperTestCase(unittest.TestCase):
         self.assertTrue("rel2-of" in relations)
         self.assertTrue("rel3-of" in relations)
 
+    def test_domains_and_ranges(self):
+        mock_concept("d1", localProperties=[{"slot": "prop", "facet": "sem", "filler": "r1"}])
+        mock_concept("d1", localProperties=[{"slot": "prop", "facet": "sem", "filler": "r2"}])
+        mock_concept("d1", localProperties=[{"slot": "prop", "facet": "xyz", "filler": "r3"}])
+        mock_concept("d1", localProperties=[{"slot": "none", "facet": "xyz", "filler": "r4"}])
+        mock_concept("d2", localProperties=[{"slot": "prop", "facet": "xyz", "filler": "r1"}])
+        mock_concept("d2", localProperties=[{"slot": "prop", "facet": "xyz", "filler": "r2"}])
+
+        domains_and_ranges = Ontology().domains_and_ranges("prop")
+        self.assertEqual({
+            "d1": ["r1", "r2", "r3"],
+            "d2": ["r1", "r2"]
+        }, domains_and_ranges)
+
     def test_dict_behavior(self):
         concept = mock_concept("concept")
 

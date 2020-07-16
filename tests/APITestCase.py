@@ -551,6 +551,35 @@ class APIRelationsTestCase(unittest.TestCase):
         self.assertTrue("rel3-of" in results)
 
 
+class APIDomainsAndRangesTestCase(unittest.TestCase):
+
+    def setUp(self):
+        client = ont.management.getclient()
+
+        ont.management.DATABASE = "unittest"
+        os.environ[ont.management.ONTOLOGY_ACTIVE] = "unittest"
+
+    def tearDown(self):
+        client = ont.management.getclient()
+        client.drop_database("unittest")
+
+    def test_domains_and_ranges_empty_results(self):
+        self.assertEqual({}, OntologyAPI().domains_and_ranges("no-such-property"))
+
+    def test_domains_and_ranges(self):
+        mock_concept("d1", localProperties=[{"slot": "prop", "facet": "sem", "filler": "r1"}])
+        mock_concept("d1", localProperties=[{"slot": "prop", "facet": "sem", "filler": "r2"}])
+        mock_concept("d1", localProperties=[{"slot": "prop", "facet": "xyz", "filler": "r3"}])
+        mock_concept("d1", localProperties=[{"slot": "none", "facet": "xyz", "filler": "r4"}])
+        mock_concept("d2", localProperties=[{"slot": "prop", "facet": "xyz", "filler": "r1"}])
+        mock_concept("d2", localProperties=[{"slot": "prop", "facet": "xyz", "filler": "r2"}])
+
+        self.assertEqual({
+            "d1": ["r1", "r2", "r3"],
+            "d2": ["r1", "r2"]
+        }, OntologyAPI().domains_and_ranges("prop"))
+
+
 class APISiblingsTestCase(unittest.TestCase):
 
     def setUp(self):

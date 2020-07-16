@@ -185,6 +185,10 @@ class Ontology():
         results = self.__rget("/ontology/api/relations", params={"inverses": inverses})
         return json.loads(results)
 
+    def domains_and_ranges(self, property: str):
+        results = self.__rget("/ontology/api/domains_and_ranges", params={"property": property})
+        return json.loads(results)
+
     def update_definition(self, concept: str, definition: str):
         self.__rpost("/ontology/edit/define/" + concept, data={"definition": definition})
 

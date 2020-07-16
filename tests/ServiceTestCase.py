@@ -324,6 +324,43 @@ class APIRelationsServiceTestCase(unittest.TestCase):
         self.assertTrue("rel3-of" in response)
 
 
+class APIDomainsAndRangesServiceTestCase(unittest.TestCase):
+
+    def setUp(self):
+        client = ont.management.getclient()
+
+        ont.management.DATABASE = "unittest"
+        os.environ[ont.management.ONTOLOGY_ACTIVE] = "unittest"
+
+        self.app = service.test_client()
+
+    def tearDown(self):
+        client = ont.management.getclient()
+        client.drop_database("unittest")
+
+    def test_domains_and_ranges_empty_results(self):
+        response = self.app.get("/ontology/api/domains_and_ranges?property=no-such-property")
+        response = json.loads(response.data)
+
+        self.assertEqual({}, response)
+
+    def test_domains_and_ranges(self):
+        mock_concept("d1", localProperties=[{"slot": "prop", "facet": "sem", "filler": "r1"}])
+        mock_concept("d1", localProperties=[{"slot": "prop", "facet": "sem", "filler": "r2"}])
+        mock_concept("d1", localProperties=[{"slot": "prop", "facet": "xyz", "filler": "r3"}])
+        mock_concept("d1", localProperties=[{"slot": "none", "facet": "xyz", "filler": "r4"}])
+        mock_concept("d2", localProperties=[{"slot": "prop", "facet": "xyz", "filler": "r1"}])
+        mock_concept("d2", localProperties=[{"slot": "prop", "facet": "xyz", "filler": "r2"}])
+
+        response = self.app.get("/ontology/api/domains_and_ranges?property=prop")
+        response = json.loads(response.data)
+
+        self.assertEqual({
+            "d1": ["r1", "r2", "r3"],
+            "d2": ["r1", "r2"]
+        }, response)
+
+
 class APIEditDefineServiceTestCase(unittest.TestCase):
 
     def setUp(self):
