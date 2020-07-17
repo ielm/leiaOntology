@@ -1,0 +1,128 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>Ontology • Hierarchy</title>
+    <script src="https://code.jquery.com/jquery-3.3.1.min.js" integrity="sha256-FgpCb/KJQlLNfOu91ta32o/NMZxltwRo8QtmkMRdAu8=" crossorigin="anonymous"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/popper.js/1.14.3/umd/popper.min.js" integrity="sha384-ZMP7rVo3mIykV+2+9J3UJ46jBk0WLaUAdn689aCwoqbBJiSnjAK/l8WvCWPIPm49" crossorigin="anonymous"></script>
+    <script src="https://stackpath.bootstrapcdn.com/bootstrap/4.1.3/js/bootstrap.bundle.min.js" integrity="sha384-pjaaA8dDz/5BgdFUPX6M/9SUZv4d12SUPF0axWc+VRZkx5xU3daN+lYb49+Ax+Tl" crossorigin="anonymous"></script>
+    <script src="https://cdn.jsdelivr.net/npm/axios/dist/axios.min.js"></script>
+
+    <link href="https://stackpath.bootstrapcdn.com/bootstrap/4.1.3/css/bootstrap.min.css" rel="stylesheet" integrity="sha384-MCw98/SFnGE8fJT3GXwEOngsV7Zt27NXFoaoApmYm81iuXoPkFOJwJ8ERdknLPMO" crossorigin="anonymous">
+    <link rel="stylesheet" href="https://use.fontawesome.com/releases/v5.3.1/css/all.css" integrity="sha384-mzrmE5qonljUremFsqc01SB46JvROS7bZs3IO2EmfFsd15uHvIt+Y8vEf7N7fWAU" crossorigin="anonymous">
+
+    <style>
+        .expand-button {
+            padding: 0rem 0.15rem;
+            font-size: 0.65rem;
+            line-height: 1.5;
+            width: 18px;
+        }
+        .children {
+            margin-left: 20px;
+        }
+        .concept-link {
+            vertical-align: text-bottom;
+        }
+    </style>
+
+    <script>
+
+        function add_node(node, container) {
+            container.append($(`
+                <div id="${node}" class="node">
+                    <button type="button" class="btn btn-sm btn-secondary expand-button mb-2" data-node="${node}" data-status="collapsed">
+                        <i class="fas fa-caret-right"></i>
+                    </button>
+                    <a class="concept-link" href="/ontology/view/${node}" target="_blank">${node}</a>
+                    <div class="children"></div>
+                </div>
+            `));
+        }
+
+        function expand_node(node) {
+            axios.get("/ontology/api/descendants", {
+                params: {
+                    "concept": node,
+                    "immediate": true,
+                    "details": true,
+                    "paths": false
+                }
+            }).then(function(response) {
+                var children = response.data;
+
+                var container = $($("#" + node).children(".children")[0]);
+                for (var i in children) {
+                    var child = children[i];
+                    var name = Object.keys(child)[0];
+                    var contents = child[name];
+                    add_node(name, container);
+                }
+
+                var button = $($("#" + node).children(".expand-button")[0]);
+                button.data("status", "expanded");
+                button.html($(`
+                    <i class="fas fa-caret-down"></i>
+                `));
+            }).catch(function(error) {
+                console.log(error.response["data"]);
+            });
+        }
+
+        function collapse_node(node) {
+            var container = $($("#" + node).children(".children")[0]);
+            container.empty();
+
+            var button = $($("#" + node).children(".expand-button")[0]);
+            button.data("status", "collapsed");
+            button.html($(`
+                <i class="fas fa-caret-right"></i>
+            `));
+        }
+
+    </script>
+
+    <script>
+        var roots = {{ roots|tojson }};
+
+        $(document).ready(function() {
+            $("body").on("click", ".expand-button", function(e) {
+                var node = $($(e.target).parents(".node")[0]);
+                var button = $(node.children("button")[0]);
+
+                var name = button.data("node");
+                var status = button.data("status");
+                if (status == "collapsed") {
+                    expand_node(name);
+                } else {
+                    collapse_node(name);
+                }
+            });
+
+            for (var i in roots) {
+                var root = roots[i];
+                add_node(root, $("#hierarchy"));
+            }
+        });
+    </script>
+
+</head>
+<body>
+
+{% include 'nav.html' %}
+<script>
+    $(document).ready(function() {
+        $("#nav-tree").addClass("active");
+    });
+</script>
+
+<div class="container">
+    <div class="row">
+        <div class="col-md-12">
+            <div id="hierarchy"></div>
+        </div>
+    </div>
+</div>
+
+</body>
+</html>

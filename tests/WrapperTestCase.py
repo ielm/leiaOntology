@@ -39,6 +39,23 @@ class OntologyWrapperTestCase(unittest.TestCase):
         response = Ontology().get(["concept"], local=True)
         self.assertEqual(response, [OntologyAPI().format(concept, local=True)])
 
+    def test_search(self):
+        c = mock_concept("concept")
+
+        response = Ontology().search(name_like="concept")
+        self.assertEqual(response, OntologyAPI().search(name_like="concept"))
+
+    def test_roots(self):
+        concept = mock_concept("concept", parents=["parent"])
+        parent = mock_concept("parent", parents=["grandparent1", "grandparent2"])
+        grandparent1 = mock_concept("grandparent1")
+        grandparent2 = mock_concept("grandparent2")
+
+        response = Ontology().roots()
+        self.assertEqual(2, len(response))
+        self.assertTrue("grandparent1" in response)
+        self.assertTrue("grandparent2" in response)
+
     def test_ancestors(self):
         concept = mock_concept("concept", parents=["parent"])
         parent = mock_concept("parent", parents=["grandparent"])
@@ -182,6 +199,20 @@ class OntologyWrapperTestCase(unittest.TestCase):
         self.assertTrue("rel1-of" in relations)
         self.assertTrue("rel2-of" in relations)
         self.assertTrue("rel3-of" in relations)
+
+    def test_domains_and_ranges(self):
+        mock_concept("d1", localProperties=[{"slot": "prop", "facet": "sem", "filler": "r1"}])
+        mock_concept("d1", localProperties=[{"slot": "prop", "facet": "sem", "filler": "r2"}])
+        mock_concept("d1", localProperties=[{"slot": "prop", "facet": "xyz", "filler": "r3"}])
+        mock_concept("d1", localProperties=[{"slot": "none", "facet": "xyz", "filler": "r4"}])
+        mock_concept("d2", localProperties=[{"slot": "prop", "facet": "xyz", "filler": "r1"}])
+        mock_concept("d2", localProperties=[{"slot": "prop", "facet": "xyz", "filler": "r2"}])
+
+        domains_and_ranges = Ontology().domains_and_ranges("prop")
+        self.assertEqual({
+            "d1": ["r1", "r2", "r3"],
+            "d2": ["r1", "r2"]
+        }, domains_and_ranges)
 
     def test_dict_behavior(self):
         concept = mock_concept("concept")
@@ -333,6 +364,9 @@ class OntologyWrapperTestCase(unittest.TestCase):
         Ontology().add_parent("child", "parent2")
         self.assertEqual({"parent1", "parent2"}, set(OntologyAPI().ancestors("child", immediate=True)))
 
+        with self.assertRaises(Exception):
+            Ontology().add_parent("child", "child")
+
     def test_edit_remove_parent(self):
         parent1 = mock_concept("parent1")
         parent2 = mock_concept("parent2")
@@ -358,6 +392,9 @@ class OntologyWrapperTestCase(unittest.TestCase):
         self.assertEqual("a definition", results[0]["concept"]["_metadata"]["definition"])
 
         self.assertEqual(["parent"], OntologyAPI().ancestors("concept"))
+
+        with self.assertRaises(Exception):
+            Ontology().add_concept("x", "x", "a definition")
 
     def test_edit_remove_concept(self):
         concept = mock_concept("concept")

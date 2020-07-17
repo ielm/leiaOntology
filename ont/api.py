@@ -1,4 +1,4 @@
-from typing import List, Union
+from typing import Dict, List, Union
 
 import ont.management
 
@@ -21,9 +21,37 @@ class OntologyAPI(object):
 
         return sorted(results[0]["all"])
 
+    def roots(self) -> List[str]:
+        results = list(self.collection.find({
+            "parents.0": {"$exists": False}
+        }))
+
+        return sorted(list(map(lambda r: r["name"], results)))
+
+    def search(self, name_like: str = None) -> List[str]:
+
+        if name_like is not None and len(name_like) < 3:
+            name_like = None
+
+        # Here, if *all* parameters are none, return an empty list
+        if name_like is None:
+            return []
+
+        if name_like is not None:
+            name_like = name_like.lower()
+
+        results = list(self.collection.find({
+            "name": {"$regex": name_like}
+        }))
+
+        results = list(map(lambda r: r["name"], results))
+        return sorted(results)
+
     def get(self, concepts: Union[str, List[str]], local: bool=False, metadata: bool=False) -> List[dict]:
         if isinstance(concepts, str):
             concepts = [concepts]
+
+        concepts = list(map(lambda c: c.lower(), concepts))
 
         results = []
         for record in self.collection.find({"$or": list(map(lambda concept: {"name": concept}, concepts))}):
@@ -32,6 +60,8 @@ class OntologyAPI(object):
         return results
 
     def ancestors(self, concept: str, immediate: bool=False, details: bool=False, paths: bool=False) -> Union[List[str], List[List[str]], List[dict], List[List[dict]]]:
+        concept = concept.lower()
+
         pipeline = [
             {
                 "$match": {
@@ -94,6 +124,8 @@ class OntologyAPI(object):
         return output
 
     def descendants(self, concept: str, immediate: bool = False, details: bool = False, paths: bool = False) -> Union[List[str], List[List[str]], List[dict], List[List[dict]]]:
+        concept = concept.lower()
+
         pipeline = [
             {
                 "$match": {
@@ -161,6 +193,8 @@ class OntologyAPI(object):
         return output
 
     def siblings(self, concept: str) -> List[str]:
+        concept = concept.lower()
+
         pipeline = [
             {"$match": {"name": concept}},
             {
@@ -244,6 +278,25 @@ class OntologyAPI(object):
 
         return result
 
+    def domains_and_ranges(self, property: str) -> Dict[str, List[str]]:
+        property = property.lower().strip()
+
+        pipeline = [
+            {"$match": {"localProperties.slot": property}},
+            {"$project": {"name": 1, "localProperties": 1}},
+            {"$unwind": "$localProperties"},
+            {"$match": {"localProperties.slot": property}},
+            {"$project": {"domain": "$name", "range": "$localProperties.filler"}}
+        ]
+
+        results = {}
+        for dr in self.collection.aggregate(pipeline):
+            if dr["domain"] not in results:
+                results[dr["domain"]] = []
+            results[dr["domain"]].append(dr["range"])
+
+        return results
+
     def full_ancestry(self) -> dict:
         pipeline = [
             {
@@ -318,6 +371,8 @@ class OntologyAPI(object):
         return relations
 
     def report(self, concept: str, include_usage: bool=False, usage_with_inheritance: bool=False):
+        concept = concept.lower()
+
         report = {}
 
         if include_usage:
@@ -391,6 +446,8 @@ class OntologyAPI(object):
         return report
 
     def update_definition(self, concept: str, definition: str):
+        concept = concept.lower().strip()
+
         self.collection.update_one({
             "name": concept.lower(),
         }, {
@@ -400,60 +457,74 @@ class OntologyAPI(object):
         })
 
     def insert_property(self, concept: str, slot: str, facet: str, filler: str):
+        concept = concept.lower().strip()
+
         self.collection.update_one({
-            "name": concept.lower(),
+            "name": concept,
         }, {
             "$push": {
                 "localProperties": {
-                    "slot": slot.lower(),
-                    "facet": facet.lower(),
-                    "filler": filler
+                    "slot": slot.lower().strip(),
+                    "facet": facet.lower().strip(),
+                    "filler": filler.strip()
                 }
             }
         })
 
     def remove_property(self, concept: str, slot: str, facet: str, filler: str):
+        concept = concept.lower().strip()
+
         self.collection.update_one({
-            "name": concept.lower(),
+            "name": concept,
         }, {
             "$pull": {
                 "localProperties": {
-                    "slot": slot.lower(),
-                    "facet": facet.lower(),
-                    "filler": filler
+                    "slot": slot.lower().strip(),
+                    "facet": facet.lower().strip(),
+                    "filler": filler.strip()
                 }
             }
         })
 
     def block_property(self, concept: str, slot: str, facet: str, filler: str):
+        concept = concept.lower().strip()
+
         self.collection.update_one({
-            "name": concept.lower(),
+            "name": concept,
         }, {
             "$push": {
                 "totallyRemovedProperties": {
-                    "slot": slot.lower(),
-                    "facet": facet.lower(),
-                    "filler": filler
+                    "slot": slot.lower().strip(),
+                    "facet": facet.lower().strip(),
+                    "filler": filler.strip()
                 }
             }
         })
 
     def unblock_property(self, concept: str, slot: str, facet: str, filler: str):
+        concept = concept.lower().strip()
+
         self.collection.update_one({
-            "name": concept.lower(),
+            "name": concept,
         }, {
             "$pull": {
                 "totallyRemovedProperties": {
-                    "slot": slot.lower(),
-                    "facet": facet.lower(),
-                    "filler": filler
+                    "slot": slot.lower().strip(),
+                    "facet": facet.lower().strip(),
+                    "filler": filler.strip()
                 }
             }
         })
 
     def add_parent(self, concept: str, parent: str):
+        concept = concept.lower().strip()
+        parent = parent.lower().strip()
+
+        if concept == parent:
+            raise Exception("Cannot assign %s as a parent of itself." % concept)
+
         self.collection.update_one({
-            "name": concept.lower(),
+            "name": concept,
         }, {
             "$push": {
                 "parents": parent
@@ -461,8 +532,11 @@ class OntologyAPI(object):
         })
 
     def remove_parent(self, concept: str, parent: str):
+        concept = concept.lower().strip()
+        parent = parent.lower().strip()
+
         self.collection.update_one({
-            "name": concept.lower(),
+            "name": concept,
         }, {
             "$pull": {
                 "parents": parent
@@ -470,9 +544,17 @@ class OntologyAPI(object):
         })
 
     def add_concept(self, concept: str, parent: Union[str, None], definition: str):
+        concept = concept.lower().strip()
+
+        if parent is not None:
+            parent = parent.lower().strip()
+
         parents = [parent]
         if parent is None:
             parents = []
+
+        if concept in parents:
+            raise Exception("Cannot assign %s as a parent of itself." % concept)
 
         self.collection.insert_one({
             "name": concept,
@@ -487,6 +569,8 @@ class OntologyAPI(object):
         })
 
     def remove_concept(self, concept: str, include_usages: bool=False):
+        concept = concept.lower().strip()
+
         if include_usages:
             report = self.report(concept, include_usage=True)
             for child in report["usage"]["subclasses"]:

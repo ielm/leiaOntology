@@ -2,9 +2,12 @@
 <html lang="en">
 <head>
     <meta charset="UTF-8">
-    <title>Ontology</title>
+    <title>Ontology • {{ payload.name }}</title>
     <script src="https://code.jquery.com/jquery-3.3.1.min.js" integrity="sha256-FgpCb/KJQlLNfOu91ta32o/NMZxltwRo8QtmkMRdAu8=" crossorigin="anonymous"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/popper.js/1.14.3/umd/popper.min.js" integrity="sha384-ZMP7rVo3mIykV+2+9J3UJ46jBk0WLaUAdn689aCwoqbBJiSnjAK/l8WvCWPIPm49" crossorigin="anonymous"></script>
     <script src="https://stackpath.bootstrapcdn.com/bootstrap/4.1.3/js/bootstrap.bundle.min.js" integrity="sha384-pjaaA8dDz/5BgdFUPX6M/9SUZv4d12SUPF0axWc+VRZkx5xU3daN+lYb49+Ax+Tl" crossorigin="anonymous"></script>
+    <script src="https://cdn.jsdelivr.net/npm/axios/dist/axios.min.js"></script>
+
     <link href="https://stackpath.bootstrapcdn.com/bootstrap/4.1.3/css/bootstrap.min.css" rel="stylesheet" integrity="sha384-MCw98/SFnGE8fJT3GXwEOngsV7Zt27NXFoaoApmYm81iuXoPkFOJwJ8ERdknLPMO" crossorigin="anonymous">
     <link rel="stylesheet" href="https://use.fontawesome.com/releases/v5.3.1/css/all.css" integrity="sha384-mzrmE5qonljUremFsqc01SB46JvROS7bZs3IO2EmfFsd15uHvIt+Y8vEf7N7fWAU" crossorigin="anonymous">
 
@@ -40,6 +43,12 @@
             font-size: xx-small;
             color: grey;
         }
+        #search-results {
+            font-size: small;
+        }
+        #search-results-contents {
+            display: inline;
+        }
         .recent {
             font-size: small;
         }
@@ -63,6 +72,14 @@
 
         #insert-property .form-control-sm {
             margin-right: 5px;
+        }
+
+        .hierarchy-self-container {
+            margin-left: 15px;
+        }
+
+        .hierarchy-subclasses-container {
+            margin-left: 15px;
         }
     </style>
 
@@ -196,7 +213,24 @@
             }).done(function(data) {
                 location.reload();
             }).fail(function(error) {
-                console.log(error);
+                show_response_message(error.responseJSON["message"]);
+            });
+        }
+
+        function add_subclass(subclass) {
+            var data = {
+                "parent": concept
+            };
+
+            $.ajax({
+                url: "/ontology/edit/add_parent/" + subclass,
+                method: "POST",
+                data: JSON.stringify(data),
+                contentType: "application/json",
+            }).done(function(data) {
+                location.reload();
+            }).fail(function(error) {
+                show_response_message(error.responseJSON["message"]);
             });
         }
 
@@ -232,7 +266,7 @@
             }).done(function(data) {
                 window.location = "/ontology/view/" + name;
             }).fail(function(error) {
-                console.log(error);
+                show_response_message(error.responseJSON["message"]);
             });
         }
 
@@ -261,13 +295,52 @@
             window.location.href = "/ontology/view/" + search;
         }
 
+        function search() {
+            var search = $("#search-input").val();
+            if (search.length >= 3) {
+                axios.get("/ontology/api/search", {
+                    params: {
+                        "name_like": search
+                    }
+                }).then(function(response) {
+                    load_search_results(response.data);
+                }).catch(function(error) {
+                    console.log(error.response["data"]);
+                });
+            } else {
+                $("#search-results").hide();
+            }
+        }
+
+        function load_search_results(results) {
+            if (results.length == 0) {
+                $("#search-results").hide();
+                return;
+            }
+
+            $("#search-results").show();
+
+            var render = results.map(x => `<a href="/ontology/view/${x}">${x}</a>`).join(" • ");
+            $("#search-results-contents").html(render);
+        }
+
+        function show_response_message(message) {
+            $("#response-message").show();
+            $("#response-message-contents").text(message);
+        }
+
         $(document).ready(function() {
+            $("#search-results").hide();
+            $("#response-message").hide();
+
             $("#search-button").on("click", function() {
                 go();
             });
             $("#search-input").on("keyup", function(e) {
                 if (e.key == "Enter") {
                     go();
+                } else {
+                    search();
                 }
             });
             $("#hide-inherit-filter").on("change", function() {
@@ -312,26 +385,30 @@
                 var target = $(e.currentTarget);
                 var slot = target.data("slot");
                 var facet = target.data("facet");
-                var filler = target.data("filler");
+                var filler = String(target.data("filler"));
                 remove_property(slot, facet, filler);
             });
             $(".block-property-button").on("click", function(e) {
                 var target = $(e.currentTarget);
                 var slot = target.data("slot");
                 var facet = target.data("facet");
-                var filler = target.data("filler");
+                var filler = String(target.data("filler"));
                 block_property(slot, facet, filler);
             });
             $(".unblock-property-button").on("click", function(e) {
                 var target = $(e.currentTarget);
                 var slot = target.data("slot");
                 var facet = target.data("facet");
-                var filler = target.data("filler");
+                var filler = String(target.data("filler"));
                 unblock_property(slot, facet, filler);
             });
             $("#add-parent-button").on("click", function() {
                 var parent = $("#add-parent-field").val();
                 add_parent(parent);
+            });
+            $("#add-subclass-button").on("click", function() {
+                var subclass = $("#add-subclass-field").val();
+                add_subclass(subclass);
             });
             $(".remove-parent-button").on("click", function(e) {
                 var target = $(e.currentTarget);
@@ -356,6 +433,9 @@
             $("#remove-concept-confirm-button").on("click", function() {
                 var includeUsages = $("#remove-concept-with-usages-check")[0].checked;
                 remove_concept(includeUsages);
+            });
+            $("#hide-response-message-button").on("click", function() {
+                $("#response-message").hide();
             });
         });
     </script>
@@ -384,6 +464,13 @@
                         </div>
                     {% endif %}
 
+                    <div id="response-message" class="alert alert-warning alert-dismissible fade show" role="alert">
+                        <div id="response-message-contents"></div>
+                        <button id="hide-response-message-button" type="button" class="close" aria-label="Close">
+                            <span aria-hidden="true">&times;</span>
+                        </button>
+                    </div>
+
 
                     <div class="input-group mb-3">
                         <div class="input-group-prepend">
@@ -396,6 +483,11 @@
                                 <button class="btn btn-success" type="button" id="new-concept-button" data-toggle="modal" data-target="#addConceptModal">New</button>
                             </div>
                         {% endif %}
+                    </div>
+
+                    <div id="search-results">
+                        Results:
+                        <div id="search-results-contents"></div>
                     </div>
 
                     {% if "recent" in payload and payload["recent"]|length > 0 %}
@@ -416,6 +508,30 @@
         <div class="col-md-3">
             <div class="card hierarchy-card">
                 <div class="card-header">
+                    Lineage
+                </div>
+                <div class="card-body">
+                    <div class="hierarchy-parents-container">
+                        {% for parent in payload.isa %}
+                            <div><a href="/ontology/view/{{ parent }}">{{ parent }}</a></div>
+                        {% endfor %}
+                        <div class="hierarchy-self-container">
+                            {% for sibling in payload.siblings %}
+                                <div><a href="/ontology/view/{{ sibling }}">{{ sibling }}</a></div>
+                            {% endfor %}
+                            {{ payload.name }}
+                            <div class="hierarchy-subclasses-container">
+                                {% for subclass in payload.subclasses %}
+                                    <div><a href="/ontology/view/{{ subclass }}">{{ subclass }}</a></div>
+                                {% endfor %}
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <div class="card hierarchy-card">
+                <div class="card-header">
                     IS-A
                 </div>
                 <div class="card-body">
@@ -433,7 +549,7 @@
                         <div id="add-parent" style="margin-top: 5px;">
                             <form class="form-inline">
                                 <button id="add-parent-button" type="button" class="btn btn-success inline-edit-button mb-2"><i class="far fa-plus-square"></i></button>
-                                <div class="form-group mx-sm-2 mb-2">
+                                <div class="form-group mx-sm-2 mb-2" style="width: 0px">
                                     <input type="text" class="form-control form-control-sm" id="add-parent-field" placeholder="Parent">
                                 </div>
                             </form>
@@ -449,6 +565,16 @@
                     {% for subclass in payload.subclasses %}
                         <div><a href="/ontology/view/{{ subclass }}">{{ subclass }}</a></div>
                     {% endfor %}
+                    {% if env.editing %}
+                        <div id="add-subclass" style="margin-top: 5px;">
+                            <form class="form-inline">
+                                <button id="add-subclass-button" type="button" class="btn btn-success inline-edit-button mb-2"><i class="far fa-plus-square"></i></button>
+                                <div class="form-group mx-sm-2 mb-2" style="width: 0px">
+                                    <input type="text" class="form-control form-control-sm" id="add-subclass-field" placeholder="Subclass">
+                                </div>
+                            </form>
+                        </div>
+                    {% endif %}
                 </div>
             </div>
             <div class="card hierarchy-card">
@@ -540,6 +666,35 @@
                     </table>
                 </div>
             </div>
+            {% if payload["domains_and_ranges"]|length > 0 %}
+                <div class="card" style="margin-top: 20px;">
+                    <div class="card-header">
+                        <span class="name"><strong>Domains and Ranges</strong></span>
+                    </div>
+                    <div class="card-body">
+                        <table class="table table-sm table-striped table-borderless">
+                            {% for domain in payload["domains_and_ranges"] %}
+                            <tr>
+                                <td>
+                                    <a href="/ontology/view/{{ domain[0] }}">{{ domain[0] }}</a>
+                                </td>
+                                <td>
+                                    {% for range in domain[1] %}
+                                        <div>
+                                            {% if range["is_concept"] %}
+                                                <a href="/ontology/view/{{ range['range'] }}">{{ range["range"] }}</a>
+                                            {% else %}
+                                                {{ range["range"] }}
+                                            {% endif %}
+                                        </div>
+                                    {% endfor %}
+                                </td>
+                            </tr>
+                            {% endfor %}
+                        </table>
+                    </div>
+                </div>
+            {% endif %}
         </div>
     </div>
 

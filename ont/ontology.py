@@ -117,6 +117,14 @@ class Ontology():
         results = self.__rget("/ontology/api/get", params={"concept": concepts, "local": local})
         return json.loads(results)
 
+    def search(self, name_like: str = None):
+        results = self.__rget("/ontology/api/search", params={"name_like": name_like})
+        return json.loads(results)
+
+    def roots(self):
+        results = self.__rget("/ontology/api/roots", params={})
+        return json.loads(results)
+
     def ancestors(self, concept, immediate=False, details=False, paths=False):
         results = self.__rget("/ontology/api/ancestors", params={"concept": concept, "immediate": immediate, "details": details, "paths": paths})
         return json.loads(results)
@@ -175,6 +183,10 @@ class Ontology():
 
     def all_relations(self, inverses=False):
         results = self.__rget("/ontology/api/relations", params={"inverses": inverses})
+        return json.loads(results)
+
+    def domains_and_ranges(self, property: str):
+        results = self.__rget("/ontology/api/domains_and_ranges", params={"property": property})
         return json.loads(results)
 
     def update_definition(self, concept: str, definition: str):

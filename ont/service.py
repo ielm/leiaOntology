@@ -1,4 +1,4 @@
-from flask import Flask, redirect, request, abort, render_template, session
+from flask import Flask, jsonify, make_response, redirect, request, abort, render_template, session
 from flask_cors import CORS
 from flask_socketio import SocketIO
 from itertools import groupby
@@ -50,6 +50,18 @@ def api_get():
     return json.dumps(OntologyAPI().get(concepts, local=local))
 
 
+@app.route("/ontology/api/roots", methods=["GET"])
+def api_roots():
+    return json.dumps(OntologyAPI().roots())
+
+
+@app.route("/ontology/api/search", methods=["GET"])
+def api_search():
+    name_like = request.args.get("name_like")
+
+    return json.dumps(OntologyAPI().search(name_like=name_like))
+
+
 @app.route("/ontology/api/ancestors", methods=["GET"])
 def api_ancestors():
     if "concept" not in request.args:
@@ -88,6 +100,16 @@ def api_relations():
     return json.dumps(OntologyAPI().relations(inverses=inverses))
 
 
+@app.route("/ontology/api/domains_and_ranges", methods=["GET"])
+def api_domains_and_ranges():
+    if "property" not in request.args:
+        abort(400)
+
+    property = request.args["property"]
+
+    return json.dumps(OntologyAPI().domains_and_ranges(property))
+
+
 ### /ontology/view - routes for the editor and browser ui, GET only
 
 
@@ -107,11 +129,16 @@ def view_concept(concept):
             session.pop("not-found")
         return redirect("/ontology/manage")
 
+    if concept != concept.lower():
+        return redirect("/ontology/view/" + concept.lower())
+
     if "recent" not in session:
         session["recent"] = list()
 
     if "editing" not in session:
         session["editing"] = False
+
+    all_concepts = OntologyAPI().list()
 
     results = OntologyAPI().get(concept, metadata=True)
     if len(results) != 1:
@@ -130,7 +157,7 @@ def view_concept(concept):
         for facet in results[0][concept][slot]:
             if facet in ["is_relation"]: continue
             for filler in results[0][concept][slot][facet]:
-                filler["is_relation"] = results[0][concept][slot]["is_relation"]
+                filler["is_relation"] = filler["filler"] in all_concepts
                 filler["from"] = None if concept == filler["defined_in"] else filler["defined_in"]
                 filler["status"] = "local"
                 if filler["blocked"]:
@@ -154,6 +181,17 @@ def view_concept(concept):
     properties = sorted(properties, key=lambda p: (p["slot"], p["facet"]))
     properties = list(properties)
 
+    def convert_domains_and_ranges(d_and_r):
+        out = []
+        for k, v in d_and_r.items():
+            out.append((
+                k, list(map(lambda r: {
+                    "range": r,
+                    "is_concept": r in all_concepts
+                }, v))
+            ))
+        return out
+
     payload = {
         "name": concept,
         "metadata": definition["_metadata"],
@@ -161,7 +199,8 @@ def view_concept(concept):
         "subclasses": subclasses,
         "siblings": siblings,
         "properties": properties,
-        "recent": session["recent"]
+        "recent": session["recent"],
+        "domains_and_ranges": convert_domains_and_ranges(OntologyAPI().domains_and_ranges(concept))
     }
 
     if payload["name"] in session["recent"]:
@@ -176,6 +215,11 @@ def view_concept(concept):
     return render_template("editor.html", payload=payload, env=env_payload())
 
 
+@app.route("/ontology/view/hierarchy", methods=["GET"])
+def view_hierarchy():
+    return render_template("hierarchy.html", roots=OntologyAPI().roots(), env=env_payload())
+
+
 @app.route("/ontology/view/report/<concept>", methods=["GET"])
 def view_report(concept):
 
@@ -184,6 +228,9 @@ def view_report(concept):
 
     if not ont.management.can_connect():
         return redirect("/ontology/manage")
+
+    if concept != concept.lower():
+        return redirect("/ontology/view/report/" + concept.lower())
 
     usage_with_inheritance = False
     try:
@@ -318,7 +365,19 @@ def edit_add_parent(concept):
     if "parent" not in data:
         abort(400)
 
-    OntologyAPI().add_parent(concept, data["parent"])
+    concept = concept.strip()
+    parent = data["parent"].strip()
+
+    if concept == parent:
+        abort(make_response(jsonify(message="Cannot assign %s as a parent of itself." % concept.lower()), 400))
+
+    if len(OntologyAPI().get(concept, local=True)) == 0:
+        abort(make_response(jsonify(message="Unknown concept %s." % concept.lower()), 400))
+
+    if len(OntologyAPI().get(parent, local=True)) == 0:
+        abort(make_response(jsonify(message="Unknown concept %s." % parent.lower()), 400))
+
+    OntologyAPI().add_parent(concept, parent)
 
     return "OK"
 
@@ -352,7 +411,19 @@ def edit_add_concept():
     if "concept" not in data or "parent" not in data or "definition" not in data:
         abort(400)
 
-    OntologyAPI().add_concept(data["concept"], data["parent"], data["definition"])
+    concept = data["concept"].strip()
+    parent = data["parent"].strip()
+
+    if concept == parent:
+        abort(make_response(jsonify(message="Cannot assign %s as a parent of itself." % concept.lower()), 400))
+
+    if len(OntologyAPI().get(concept, local=True)) != 0:
+        abort(make_response(jsonify(message="Concept %s already exists." % concept.lower()), 400))
+
+    if len(OntologyAPI().get(parent, local=True)) == 0:
+        abort(make_response(jsonify(message="Unknown concept %s." % parent.lower()), 400))
+
+    OntologyAPI().add_concept(concept, parent, data["definition"])
 
     return "OK"
 

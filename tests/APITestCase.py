@@ -304,6 +304,29 @@ class APIGetTestCase(unittest.TestCase):
         self.assertTrue(results[0]["concept"]["rel2-of"]["is_relation"])
 
 
+class APIRootsTestCase(unittest.TestCase):
+
+    def setUp(self):
+        client = ont.management.getclient()
+
+        ont.management.DATABASE = "unittest"
+        os.environ[ont.management.ONTOLOGY_ACTIVE] = "unittest"
+
+    def tearDown(self):
+        client = ont.management.getclient()
+        client.drop_database("unittest")
+
+
+    def test_roots(self):
+        concept = mock_concept("concept", parents=["parent"])
+        parent = mock_concept("parent", parents=["grandparent1", "grandparent2"])
+        grandparent1 = mock_concept("grandparent1")
+        grandparent2 = mock_concept("grandparent2")
+
+        results = OntologyAPI().roots()
+        self.assertEqual({"grandparent1", "grandparent2"}, set(results))
+
+
 class APIAncestorsTestCase(unittest.TestCase):
 
     def setUp(self):
@@ -526,6 +549,35 @@ class APIRelationsTestCase(unittest.TestCase):
         self.assertTrue("rel1-of" in results)
         self.assertTrue("rel2-of" in results)
         self.assertTrue("rel3-of" in results)
+
+
+class APIDomainsAndRangesTestCase(unittest.TestCase):
+
+    def setUp(self):
+        client = ont.management.getclient()
+
+        ont.management.DATABASE = "unittest"
+        os.environ[ont.management.ONTOLOGY_ACTIVE] = "unittest"
+
+    def tearDown(self):
+        client = ont.management.getclient()
+        client.drop_database("unittest")
+
+    def test_domains_and_ranges_empty_results(self):
+        self.assertEqual({}, OntologyAPI().domains_and_ranges("no-such-property"))
+
+    def test_domains_and_ranges(self):
+        mock_concept("d1", localProperties=[{"slot": "prop", "facet": "sem", "filler": "r1"}])
+        mock_concept("d1", localProperties=[{"slot": "prop", "facet": "sem", "filler": "r2"}])
+        mock_concept("d1", localProperties=[{"slot": "prop", "facet": "xyz", "filler": "r3"}])
+        mock_concept("d1", localProperties=[{"slot": "none", "facet": "xyz", "filler": "r4"}])
+        mock_concept("d2", localProperties=[{"slot": "prop", "facet": "xyz", "filler": "r1"}])
+        mock_concept("d2", localProperties=[{"slot": "prop", "facet": "xyz", "filler": "r2"}])
+
+        self.assertEqual({
+            "d1": ["r1", "r2", "r3"],
+            "d2": ["r1", "r2"]
+        }, OntologyAPI().domains_and_ranges("prop"))
 
 
 class APISiblingsTestCase(unittest.TestCase):
@@ -866,6 +918,12 @@ class APIAddParentTestCase(unittest.TestCase):
         OntologyAPI().add_parent("child", "parent2")
         self.assertEqual({"parent1", "parent2"}, set(OntologyAPI().ancestors("child", immediate=True)))
 
+    def test_cannot_add_self_as_parent(self):
+        concept = mock_concept("concept")
+
+        with self.assertRaises(Exception):
+            OntologyAPI().add_parent("concept", "concept")
+
 
 class APIRemoveParentTestCase(unittest.TestCase):
 
@@ -918,6 +976,12 @@ class APIAddConceptTestCase(unittest.TestCase):
 
         self.assertEqual(["parent"], OntologyAPI().ancestors("concept"))
 
+    def test_cannot_declare_self_as_parent(self):
+        parent = mock_concept("parent")
+
+        with self.assertRaises(Exception):
+            OntologyAPI().add_concept("parent", "parent", "a definition")
+
 
 class APIRemoveConceptTestCase(unittest.TestCase):
 
@@ -964,3 +1028,33 @@ class APIRemoveConceptTestCase(unittest.TestCase):
         self.assertNotIn("slot2", OntologyAPI().get("other1")[0]["other1"])
         self.assertIn("other1", OntologyAPI().get("other1")[0]["other1"]["slot3"]["sem"])
         self.assertIn("other1", OntologyAPI().get("other2")[0]["other2"]["slot1"]["sem"])
+
+
+class APISearchTestCase(unittest.TestCase):
+
+    def setUp(self):
+        client = ont.management.getclient()
+
+        ont.management.DATABASE = "unittest"
+        os.environ[ont.management.ONTOLOGY_ACTIVE] = "unittest"
+
+    def tearDown(self):
+        client = ont.management.getclient()
+        client.drop_database("unittest")
+
+    def test_search_name_like(self):
+        c1 = mock_concept("concept1")
+        c2 = mock_concept("concept2")
+        c3 = mock_concept("concept3")
+
+        self.assertEqual(["concept1"], OntologyAPI().search(name_like="concept1"))
+        self.assertEqual(["concept1", "concept2", "concept3"], OntologyAPI().search(name_like="concept"))
+        self.assertEqual(["concept1"], OntologyAPI().search(name_like="ept1"))
+        self.assertEqual(["concept1", "concept2", "concept3"], OntologyAPI().search(name_like="once"))
+        self.assertEqual([], OntologyAPI().search(name_like="xyz"))
+
+        # No name specified returns an empty list
+        self.assertEqual([], OntologyAPI().search())
+
+        # Name must be at least 3 characters to search (treats as None otherwise)
+        self.assertEqual([], OntologyAPI().search(name_like="co"))

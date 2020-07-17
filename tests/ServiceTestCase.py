@@ -48,6 +48,34 @@ class APIGetServiceTestCase(unittest.TestCase):
         response = json.loads(response.data)
         self.assertEqual(response, OntologyAPI().get("child", local=True))
 
+
+class APIRootsServiceTestCase(unittest.TestCase):
+
+    def setUp(self):
+        client = ont.management.getclient()
+
+        ont.management.DATABASE = "unittest"
+        os.environ[ont.management.ONTOLOGY_ACTIVE] = "unittest"
+
+        self.app = service.test_client()
+
+    def tearDown(self):
+        client = ont.management.getclient()
+        client.drop_database("unittest")
+
+    def test_roots(self):
+        concept = mock_concept("concept", parents=["parent"])
+        parent = mock_concept("parent", parents=["grandparent1", "grandparent2"])
+        grandparent1 = mock_concept("grandparent1")
+        grandparent2 = mock_concept("grandparent2")
+
+        response = self.app.get("/ontology/api/roots")
+        response = json.loads(response.data)
+
+        self.assertEqual(2, len(response))
+        self.assertTrue("grandparent1" in response)
+        self.assertTrue("grandparent2" in response)
+
         
 class APIAncestorsServiceTestCase(unittest.TestCase):
 
@@ -294,6 +322,43 @@ class APIRelationsServiceTestCase(unittest.TestCase):
         self.assertTrue("rel1-of" in response)
         self.assertTrue("rel2-of" in response)
         self.assertTrue("rel3-of" in response)
+
+
+class APIDomainsAndRangesServiceTestCase(unittest.TestCase):
+
+    def setUp(self):
+        client = ont.management.getclient()
+
+        ont.management.DATABASE = "unittest"
+        os.environ[ont.management.ONTOLOGY_ACTIVE] = "unittest"
+
+        self.app = service.test_client()
+
+    def tearDown(self):
+        client = ont.management.getclient()
+        client.drop_database("unittest")
+
+    def test_domains_and_ranges_empty_results(self):
+        response = self.app.get("/ontology/api/domains_and_ranges?property=no-such-property")
+        response = json.loads(response.data)
+
+        self.assertEqual({}, response)
+
+    def test_domains_and_ranges(self):
+        mock_concept("d1", localProperties=[{"slot": "prop", "facet": "sem", "filler": "r1"}])
+        mock_concept("d1", localProperties=[{"slot": "prop", "facet": "sem", "filler": "r2"}])
+        mock_concept("d1", localProperties=[{"slot": "prop", "facet": "xyz", "filler": "r3"}])
+        mock_concept("d1", localProperties=[{"slot": "none", "facet": "xyz", "filler": "r4"}])
+        mock_concept("d2", localProperties=[{"slot": "prop", "facet": "xyz", "filler": "r1"}])
+        mock_concept("d2", localProperties=[{"slot": "prop", "facet": "xyz", "filler": "r2"}])
+
+        response = self.app.get("/ontology/api/domains_and_ranges?property=prop")
+        response = json.loads(response.data)
+
+        self.assertEqual({
+            "d1": ["r1", "r2", "r3"],
+            "d2": ["r1", "r2"]
+        }, response)
 
 
 class APIEditDefineServiceTestCase(unittest.TestCase):
@@ -546,6 +611,21 @@ class APIEditAddParentServiceTestCase(unittest.TestCase):
 
         self.assertEqual(["parent"], OntologyAPI().ancestors("child", immediate=True))
 
+    def test_400_if_same_parent_child(self):
+        mock_concept("concept")
+
+        data = {
+            "parent": "concept"
+        }
+
+        response = self.app.post("/ontology/edit/add_parent/concept",
+                                 data=json.dumps(data),
+                                 content_type="application/json")
+        self.assertEqual(400, response._status_code)
+        self.assertEqual({
+            "message": "Cannot assign concept as a parent of itself."
+        }, json.loads(response.data.decode("utf-8")))
+
 
 class APIEditRemoveParentServiceTestCase(unittest.TestCase):
 
@@ -624,6 +704,21 @@ class APIEditAddConceptParentServiceTestCase(unittest.TestCase):
         self.assertEqual("a definition", results[0]["child"]["_metadata"]["definition"])
 
         self.assertEqual(["parent"], OntologyAPI().ancestors("child"))
+
+    def test_400_if_same_parent_child(self):
+        data = {
+            "concept": "concept",
+            "parent": "concept",
+            "definition": "a definition"
+        }
+
+        response = self.app.post("/ontology/edit/add_concept",
+                                 data=json.dumps(data),
+                                 content_type="application/json")
+        self.assertEqual(400, response._status_code)
+        self.assertEqual({
+            "message": "Cannot assign concept as a parent of itself."
+        }, json.loads(response.data.decode("utf-8")))
 
 
 class APIEditRemoveConceptParentServiceTestCase(unittest.TestCase):
