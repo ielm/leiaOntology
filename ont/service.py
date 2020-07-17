@@ -184,12 +184,17 @@ def view_concept(concept):
     def convert_domains_and_ranges(d_and_r):
         out = []
         for k, v in d_and_r.items():
-            out.append((
-                k, list(map(lambda r: {
-                    "range": r,
-                    "is_concept": r in all_concepts
-                }, v))
-            ))
+            ranges = list(map(lambda r: {
+                "range": r,
+                "is_concept": r in all_concepts
+            }, v))
+            ranges = sorted(ranges, key=lambda r: r["range"])
+
+            to_append = (k, ranges)
+
+            out.append(to_append)
+
+        out = sorted(out, key=lambda o: o[0])
         return out
 
     payload = {

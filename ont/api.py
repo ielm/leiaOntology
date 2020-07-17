@@ -188,6 +188,9 @@ class OntologyAPI(object):
         if details:
             output = list(map(lambda path: list(map(lambda concept: self.format(self._cache[concept]), path)), output))
 
+        if details and not paths:
+            output[0] = sorted(output[0], key=lambda x: list(x.keys())[0])
+
         if not paths:
             return output[0]
         return output
